@@ -3,6 +3,7 @@ export * from './date';
 export * from './deductions';
 export * from './errors';
 export * from './history';
+export * from './payroll';
 export * from './period';
 export * from './rates';
 export * from './shift';
