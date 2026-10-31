@@ -1,0 +1,18 @@
+# 변경 기록
+
+날짜별 변경 기록이다. 최신 날짜가 위에 있다. 쓰는 법은 [docs/conventions.md](docs/conventions.md#3-변경-기록)에 있다.
+
+## 진행 중
+
+- 급여 계산 엔진 (`packages/shared`): 기본급, 주휴수당, 공제
+
+## 2026-10-31
+
+### 추가
+
+- 저장소 첫 설정: 코딩 에이전트 지침(`AGENTS.md`, `CLAUDE.md`), 작업 규칙(`docs/conventions.md`), 변경 기록(`CHANGELOG.md`)
+- 커밋 전 훅(`.githooks/pre-commit`): 개인 맥락 파일, 환경 변수 파일, Terraform 상태 파일, 키 형태의 문자열이 커밋되지 않게 검사
+
+### 문서
+
+- 설계 방향 확정: PWA + iCalendar 구독 캘린더, AWS 서버리스 배포, 반복 근무를 날짜별 근무로 펼쳐 저장, 요일별 시각을 지정하는 기간제 반복 규칙. 결정별 이유는 ADR로 정리할 예정

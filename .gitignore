@@ -1,0 +1,40 @@
+# 의존성, 빌드 결과
+node_modules/
+dist/
+build/
+coverage/
+.vite/
+*.tsbuildinfo
+
+# 환경 변수, 비밀
+.env
+.env.*
+!.env.example
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# 개인 맥락 (커밋 금지)
+.private/
+CLAUDE.local.md
+
+# 로컬 실행, 편집기
+.dynamodb/
+*.log
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json

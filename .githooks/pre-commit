@@ -1,0 +1,48 @@
+#!/bin/sh
+# 커밋 전에 개인 맥락 파일과 비밀 정보가 들어가지 않았는지 검사한다.
+# 켜기: git config core.hooksPath .githooks
+
+fail=0
+
+# 1) 커밋하면 안 되는 경로
+blocked_pattern='(^|/)\.private/|(^|/)CLAUDE\.local\.md$|(^|/)\.env(\.[^/]*)?$|\.tfstate(\.[^/]*)?$|\.tfvars$'
+blocked=$(git diff --cached --name-only --diff-filter=ACMR \
+  | grep -E "$blocked_pattern" \
+  | grep -v -E '\.example$')
+
+if [ -n "$blocked" ]; then
+  echo "커밋하면 안 되는 파일이 스테이징돼 있습니다:"
+  echo "$blocked" | sed 's/^/  /'
+  echo "  → git restore --staged <파일> 로 빼세요."
+  fail=1
+fi
+
+# 2) 추가된 줄에 비밀 정보로 보이는 문자열
+# 대괄호 표기는 이 파일 자체가 검사에 걸리지 않게 하기 위한 것이다.
+secret_pattern='AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|aws_secret_access_[k]ey|/cal/[A-Za-z0-9_-]{40,}\.ics'
+secrets=$(git diff --cached -U0 --diff-filter=ACMR \
+  | grep -E '^\+[^+]' \
+  | grep -E "$secret_pattern")
+
+if [ -n "$secrets" ]; then
+  echo "비밀 정보로 보이는 문자열이 있습니다:"
+  echo "$secrets" | cut -c1-120 | sed 's/^/  /'
+  fail=1
+fi
+
+# 3) gitleaks가 설치돼 있으면 함께 검사
+if command -v gitleaks >/dev/null 2>&1; then
+  if ! gitleaks git --pre-commit --staged --redact --no-banner >/dev/null 2>&1; then
+    if ! gitleaks protect --staged --redact >/dev/null 2>&1; then
+      echo "gitleaks가 비밀 정보를 찾았습니다. 'gitleaks git --pre-commit --staged --redact -v'로 확인하세요."
+      fail=1
+    fi
+  fi
+fi
+
+if [ "$fail" -ne 0 ]; then
+  echo "커밋을 중단했습니다."
+  exit 1
+fi
+
+exit 0
