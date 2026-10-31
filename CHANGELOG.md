@@ -12,6 +12,7 @@
 
 - 저장소 첫 설정: 코딩 에이전트 지침(`AGENTS.md`, `CLAUDE.md`), 작업 규칙(`docs/conventions.md`), 변경 기록(`CHANGELOG.md`)
 - 커밋 전 훅(`.githooks/pre-commit`): 개인 맥락 파일, 환경 변수 파일, Terraform 상태 파일, 키 형태의 문자열이 커밋되지 않게 검사
+- pnpm 모노레포와 TypeScript 7·Vitest 5 설정. 계산 엔진은 빌드 단계 없이 TypeScript 소스를 그대로 가져다 쓰는 내부 패키지(`@albapay/shared`)로 둔다
 
 ### 문서
 
