@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   deductionInputSchema,
+  ruleCreateSchema,
+  ruleEndSchema,
+  ruleSplitSchema,
   settingsSchema,
   shiftCreateSchema,
   shiftUpdateSchema,
@@ -119,5 +122,63 @@ describe('yearMonthSchema', () => {
     expect(yearMonthSchema.safeParse('2026-11').success).toBe(true);
     expect(yearMonthSchema.safeParse('2026-13').success).toBe(false);
     expect(yearMonthSchema.safeParse('2026-1').success).toBe(false);
+  });
+});
+
+describe('ruleCreateSchema', () => {
+  const valid = {
+    slots: [
+      { dayOfWeek: 3, start: '18:00', end: '23:00', breakMin: 0 },
+      { dayOfWeek: 5, start: '22:00', end: '06:00', breakMin: 60 },
+    ],
+    startDate: '2026-11-04',
+    endDate: null,
+    intervalWeeks: 1,
+  };
+
+  it('accepts an open-ended weekly rule with an overnight slot', () => {
+    expect(ruleCreateSchema.parse(valid)).toEqual(valid);
+  });
+
+  it('rejects the same weekday twice', () => {
+    const slots = [valid.slots[0], { ...valid.slots[0], start: '09:00', end: '10:00' }];
+    expect(issuePaths(ruleCreateSchema.safeParse({ ...valid, slots }))).toEqual(['slots.1.dayOfWeek']);
+  });
+
+  it('rejects a rule without slots', () => {
+    expect(issuePaths(ruleCreateSchema.safeParse({ ...valid, slots: [] }))).toEqual(['slots']);
+  });
+
+  it('checks each slot like a shift time range', () => {
+    const slots = [{ dayOfWeek: 3, start: '09:00', end: '10:00', breakMin: 60 }];
+    expect(issuePaths(ruleCreateSchema.safeParse({ ...valid, slots }))).toEqual(['slots.0.breakMin']);
+  });
+
+  it('rejects an end date before the start date', () => {
+    expect(issuePaths(ruleCreateSchema.safeParse({ ...valid, endDate: '2026-11-03' }))).toEqual(['endDate']);
+  });
+
+  it('accepts only weekly and biweekly intervals', () => {
+    expect(ruleCreateSchema.safeParse({ ...valid, intervalWeeks: 2 }).success).toBe(true);
+    expect(issuePaths(ruleCreateSchema.safeParse({ ...valid, intervalWeeks: 3 }))).toEqual(['intervalWeeks']);
+  });
+});
+
+describe('ruleSplitSchema', () => {
+  it('compares the end date with the date the change starts from', () => {
+    const result = ruleSplitSchema.safeParse({
+      version: 1,
+      fromDate: '2026-12-01',
+      slots: [{ dayOfWeek: 6, start: '12:00', end: '18:00', breakMin: 30 }],
+      endDate: '2026-11-30',
+      intervalWeeks: 1,
+    });
+    expect(issuePaths(result)).toEqual(['endDate']);
+  });
+});
+
+describe('ruleEndSchema', () => {
+  it('requires the version and the first date without work', () => {
+    expect(issuePaths(ruleEndSchema.safeParse({})).sort()).toEqual(['fromDate', 'version']);
   });
 });

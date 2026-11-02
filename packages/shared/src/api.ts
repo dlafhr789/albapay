@@ -1,8 +1,9 @@
 import { z } from 'zod';
 import { clockRangeMinutes, isClockTime } from './clock';
-import { toDayNumber, type DayOfWeek, type LocalDateTime } from './date';
+import { toDayNumber, type DayOfWeek, type LocalDate, type LocalDateTime } from './date';
 import type { DeductionProfile } from './deductions';
 import type { PayrollResult } from './payroll';
+import type { RecurringRule } from './rules';
 import type { Shift, WageEntry } from './types';
 
 // API의 요청 검사와 웹의 입력 폼이 같은 스키마를 쓴다.
@@ -28,24 +29,27 @@ export const clockTimeSchema = z
   .string()
   .refine(isClockTime, { message: '시각은 HH:mm 형식이어야 합니다.' });
 
+/** 시작과 종료가 같거나, 휴게가 근무 시간 이상이면 근무로 볼 수 없다. */
+function checkClockRange(range: { start: string; end: string; breakMin: number }, ctx: z.RefinementCtx): void {
+  if (!isClockTime(range.start) || !isClockTime(range.end)) return;
+  if (range.start === range.end) {
+    ctx.addIssue({ code: 'custom', path: ['end'], message: '시작과 종료 시각이 같습니다.' });
+  } else if (range.breakMin >= clockRangeMinutes(range.start, range.end)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['breakMin'],
+      message: '휴게 시간이 근무 시간 이상입니다.',
+    });
+  }
+}
+
 export const clockRangeSchema = z
   .object({
     start: clockTimeSchema,
     end: clockTimeSchema,
     breakMin: z.number().int().min(0),
   })
-  .superRefine((range, ctx) => {
-    if (!isClockTime(range.start) || !isClockTime(range.end)) return;
-    if (range.start === range.end) {
-      ctx.addIssue({ code: 'custom', path: ['end'], message: '시작과 종료 시각이 같습니다.' });
-    } else if (range.breakMin >= clockRangeMinutes(range.start, range.end)) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['breakMin'],
-        message: '휴게 시간이 근무 시간 이상입니다.',
-      });
-    }
-  });
+  .superRefine(checkClockRange);
 
 const dayOfWeekSchema = z
   .number()
@@ -140,6 +144,80 @@ export const shiftUpdateSchema = z
   })
   .superRefine(checkActualMatchesStatus);
 export type ShiftUpdateInput = z.output<typeof shiftUpdateSchema>;
+
+export const ruleSlotSchema = z
+  .object({
+    dayOfWeek: dayOfWeekSchema,
+    start: clockTimeSchema,
+    end: clockTimeSchema,
+    breakMin: z.number().int().min(0),
+  })
+  .superRefine(checkClockRange);
+
+/** 근무 ID에 날짜가 들어가서 규칙 하나에 같은 요일은 한 번만 둘 수 있다. */
+const ruleSlotsSchema = z
+  .array(ruleSlotSchema)
+  .min(1, { message: '근무 요일을 하나 이상 고르세요.' })
+  .max(7)
+  .superRefine((slots, ctx) => {
+    const seen = new Set<number>();
+    slots.forEach((slot, index) => {
+      if (seen.has(slot.dayOfWeek)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [index, 'dayOfWeek'],
+          message: '같은 요일이 두 번 있습니다. 하루에 근무가 두 번이면 하나는 직접 추가하세요.',
+        });
+      }
+      seen.add(slot.dayOfWeek);
+    });
+  });
+
+const intervalWeeksSchema = z.union([z.literal(1), z.literal(2)]);
+
+function checkEndNotBefore(start: string, end: string | null, ctx: z.RefinementCtx): void {
+  if (end !== null && isLocalDate(start) && isLocalDate(end) && end < start) {
+    ctx.addIssue({ code: 'custom', path: ['endDate'], message: '종료일이 시작일보다 이릅니다.' });
+  }
+}
+
+export const ruleCreateSchema = z
+  .object({
+    slots: ruleSlotsSchema,
+    startDate: localDateSchema,
+    endDate: localDateSchema.nullable(),
+    intervalWeeks: intervalWeeksSchema,
+  })
+  .superRefine((rule, ctx) => checkEndNotBefore(rule.startDate, rule.endDate, ctx));
+export type RuleCreateInput = z.output<typeof ruleCreateSchema>;
+
+/** 규칙 수정은 지난 근무를 지키기 위해 '이 날짜부터 바꾸기'로만 한다. */
+export const ruleSplitSchema = z
+  .object({
+    version: z.number().int().min(1),
+    fromDate: localDateSchema,
+    slots: ruleSlotsSchema,
+    endDate: localDateSchema.nullable(),
+    intervalWeeks: intervalWeeksSchema,
+  })
+  .superRefine((rule, ctx) => checkEndNotBefore(rule.fromDate, rule.endDate, ctx));
+export type RuleSplitInput = z.output<typeof ruleSplitSchema>;
+
+export const ruleEndSchema = z.object({
+  version: z.number().int().min(1),
+  fromDate: localDateSchema,
+});
+export type RuleEndInput = z.output<typeof ruleEndSchema>;
+
+/** 저장된 반복 규칙 */
+export interface RuleRecord extends RecurringRule {
+  /** 이 날짜까지 근무를 펼쳤다. 매일 도는 작업은 다음 날부터 이어서 펼친다. 아직 펼치지 않았으면 null */
+  materializedThrough: LocalDate | null;
+  /** 낙관적 잠금용. 사용자가 규칙을 바꿀 때마다 1씩 오른다. 펼치기 작업은 올리지 않는다. */
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+}
 
 /** 저장된 근무. 급여 계산 엔진의 `Shift`에 저장·동기화용 필드를 더한 것 */
 export interface ShiftRecord extends Shift {
