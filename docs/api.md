@@ -171,6 +171,8 @@ TABLE_NAME=<테이블> pnpm --filter @albapay/api issue-token api
 | --- | --- | --- | --- |
 | GET | `/api/rules` | 규칙 목록을 시작일 순으로 | 200 `{ "rules": [...] }` |
 | POST | `/api/rules` | 규칙을 만들고 근무를 펼친다 | 201 |
+| POST | `/api/rules/{id}/split` | 이 날짜부터 다른 규칙으로 바꾼다 | 201 `{ "previous": ..., "next": ... }` |
+| POST | `/api/rules/{id}/end` | 이 날짜부터 규칙을 끝낸다 | 200 `{ "rule": ... }` |
 
 ### 만들기
 
@@ -198,6 +200,35 @@ TABLE_NAME=<테이블> pnpm --filter @albapay/api issue-token api
 - 이미 같은 `id`의 근무가 있으면 덮어쓰지 않는다. 사용자가 고친 근무는 펼치기를 다시 돌려도 그대로 남는다.
 - 확정한 정산 기간의 날짜에는 근무를 만들지 않는다.
 
+### 바꾸기와 끝내기
+
+규칙은 고쳐 쓰지 않고 날짜 하나를 기준으로 나눈다. 그 날짜 전의 근무는 기존 규칙에 그대로 남아서, 지난 근무 기록이 규칙 수정 때문에 바뀌지 않는다.
+
+```json
+POST /api/rules/{id}/split
+{
+  "version": 1,
+  "fromDate": "2026-11-30",
+  "slots": [
+    { "dayOfWeek": 6, "start": "12:00", "end": "18:00", "breakMin": 0 },
+    { "dayOfWeek": 0, "start": "12:00", "end": "18:00", "breakMin": 0 }
+  ],
+  "endDate": null,
+  "intervalWeeks": 1
+}
+
+POST /api/rules/{id}/end
+{ "version": 1, "fromDate": "2026-12-01" }
+```
+
+- `fromDate`는 바뀐 일정(또는 근무 없음)이 시작되는 첫날이다. 기존 규칙의 종료일은 그 전날이 된다.
+- 기존 규칙에서 `fromDate` 이후에 만든 근무는 지운다. 단, 따로 고친 근무(`detached`, 빠진 날 포함)는 남긴다.
+- 나누기로 만든 새 규칙은 그렇게 남은 근무의 날짜를 `skipDates`에 넣어서 같은 날 근무를 하나 더 만들지 않는다.
+- `fromDate`가 기존 규칙의 시작일 이전이면 기존 규칙은 근무가 하나도 없게 되어 지워진다. 이때 `previous`(끝내기는 `rule`)가 `null`이다.
+- 기존 규칙이 이미 끝난 뒤의 날짜면 400이다. 그 뒤의 일정은 새 규칙으로 만든다.
+- `fromDate` 이후가 확정한 정산 기간과 겹치면 409 `PERIOD_LOCKED`다. 확정하지 않은 기간이면 지난 날짜부터도 바꿀 수 있다.
+- 나누기는 기존 규칙을 고치는 쓰기와 새 규칙을 만드는 쓰기를 트랜잭션 하나로 묶는다.
+
 ### 응답 형태
 
 ```json
@@ -219,7 +250,8 @@ TABLE_NAME=<테이블> pnpm --filter @albapay/api issue-token api
 ```
 
 - `materializedThrough`는 근무를 어디까지 만들었는지다. 아직 하나도 만들지 않았으면 `null`이다.
-- `skipDates`는 근무를 만들지 않는 날짜다.
+- `skipDates`는 근무를 만들지 않는 날짜다. 규칙을 나눌 때 채워진다.
+- `version`은 바꾸기·끝내기를 할 때 마지막으로 읽은 값을 보낸다. 근무를 채우는 작업은 `version`을 올리지 않는다.
 
 ## 정산
 

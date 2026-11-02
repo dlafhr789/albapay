@@ -329,6 +329,27 @@ export class Store {
     }
   }
 
+  /**
+   * 사용자가 따로 고치지 않은 근무(`detached`가 false)일 때만 지운다. 규칙의 범위가 줄어서 필요 없어진
+   * 근무를 지울 때 쓴다. 읽은 뒤 그사이 사용자가 고쳤으면 지우지 않고 false를 돌려준다.
+   */
+  async deleteUntouchedShift(workDate: LocalDate, id: string): Promise<boolean> {
+    try {
+      await this.db.send(
+        new DeleteCommand({
+          TableName: this.tableName,
+          Key: keys.shift(workDate, id),
+          ConditionExpression: 'detached = :untouched',
+          ExpressionAttributeValues: { ':untouched': false },
+        }),
+      );
+      return true;
+    } catch (error) {
+      if (isAwsError(error, 'ConditionalCheckFailedException')) return false;
+      throw error;
+    }
+  }
+
   /** 조건부 쓰기가 실패했을 때, 아이템이 없어서인지 다른 곳에서 먼저 고쳐서인지 구분한다. */
   private async conflictFor(workDate: LocalDate, id: string): Promise<StoreError> {
     const current = await this.getShift(workDate, id);
@@ -367,6 +388,60 @@ export class Store {
       }
       throw error;
     }
+  }
+
+  /** 규칙을 통째로 바꾼다. 저장된 `version`이 `expectedVersion`일 때만 쓴다. */
+  async replaceRule(rule: RuleRecord, expectedVersion: number): Promise<void> {
+    try {
+      await this.db.send(
+        new PutCommand({ TableName: this.tableName, Item: toRuleItem(rule), ...versionIs(expectedVersion) }),
+      );
+    } catch (error) {
+      if (isAwsError(error, 'ConditionalCheckFailedException')) throw await this.ruleConflictFor(rule.id);
+      throw error;
+    }
+  }
+
+  /**
+   * 규칙을 날짜 하나를 기준으로 둘로 나눈다. 기존 규칙(`previous`, 종료일을 당긴 것)을 고치는 쓰기와
+   * 새 규칙(`next`)을 만드는 쓰기를 트랜잭션 하나로 묶어서, 한쪽만 반영되는 일이 없게 한다.
+   */
+  async splitRule(previous: RuleRecord, expectedVersion: number, next: RuleRecord): Promise<void> {
+    try {
+      await this.db.send(
+        new TransactWriteCommand({
+          TransactItems: [
+            { Put: { TableName: this.tableName, Item: toRuleItem(previous), ...versionIs(expectedVersion) } },
+            {
+              Put: {
+                TableName: this.tableName,
+                Item: toRuleItem(next),
+                ConditionExpression: 'attribute_not_exists(PK)',
+              },
+            },
+          ],
+        }),
+      );
+    } catch (error) {
+      if (isAwsError(error, 'TransactionCanceledException')) {
+        const reasons = (error['CancellationReasons'] as { Code?: string }[] | undefined) ?? [];
+        if (reasons[0]?.Code === 'ConditionalCheckFailed') throw await this.ruleConflictFor(previous.id);
+        if (reasons[1]?.Code === 'ConditionalCheckFailed') {
+          throw new StoreError('ALREADY_EXISTS', `이미 있는 규칙입니다: ${next.id}`);
+        }
+      }
+      throw error;
+    }
+  }
+
+  async deleteRule(id: string): Promise<boolean> {
+    return this.delete(keys.rule(id));
+  }
+
+  private async ruleConflictFor(id: string): Promise<StoreError> {
+    return (await this.getRule(id))
+      ? new StoreError('VERSION_CONFLICT', `다른 곳에서 먼저 수정된 규칙입니다: ${id}`)
+      : new StoreError('NOT_FOUND', `규칙이 없습니다: ${id}`);
   }
 
   /**
