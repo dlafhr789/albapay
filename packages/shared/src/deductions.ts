@@ -67,7 +67,7 @@ export function calculateDeductions(
   if (profile.healthInsurancePpm !== null) {
     const health = applyRate(gross, profile.healthInsurancePpm);
     lines.push({ item: 'HEALTH_INSURANCE', amount: health });
-    // Long-term care is charged on top of the health premium, never on its own.
+    // 장기요양보험료는 건강보험료에 붙어서 걷는 보험료라 따로 계산하지 않는다.
     if (profile.longTermCarePpm !== null) {
       lines.push({ item: 'LONG_TERM_CARE', amount: applyRate(health, profile.longTermCarePpm) });
     }
