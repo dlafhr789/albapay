@@ -1,4 +1,6 @@
+export * from './api';
 export * from './basePay';
+export * from './clock';
 export * from './date';
 export * from './deductions';
 export * from './errors';

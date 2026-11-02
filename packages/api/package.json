@@ -1,0 +1,26 @@
+{
+  "name": "@albapay/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:int": "vitest run --config vitest.integration.config.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "create-local-table": "tsx scripts/create-local-table.ts",
+    "issue-token": "tsx scripts/issue-token.ts"
+  },
+  "dependencies": {
+    "@albapay/shared": "workspace:*",
+    "@aws-sdk/client-dynamodb": "^3.1161.0",
+    "@aws-sdk/lib-dynamodb": "^3.1161.0",
+    "@hono/aws-lambda": "^1.0.1",
+    "hono": "^4.13.16",
+    "ulid": "^3.0.2",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "tsx": "^4.23.15"
+  }
+}

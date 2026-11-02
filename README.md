@@ -23,6 +23,21 @@
 - 기본급, 주휴수당, 공제(3.3% 또는 4대보험 항목별 선택)를 계산한다.
 - 상시 5인 미만 사업장을 전제로 해서 야간·연장·휴일 가산수당은 계산하지 않는다.
 
+## 개발
+
+Node.js 22 이상, pnpm, Docker가 필요하다.
+
+```bash
+pnpm install
+pnpm typecheck
+pnpm test                 # 단위 테스트
+docker compose up -d      # DynamoDB Local (localhost:8000)
+pnpm test:int             # 통합 테스트
+docker compose down
+```
+
+데이터 구조는 [docs/data-model.md](docs/data-model.md), 급여 계산 규칙은 [docs/payroll-rules.md](docs/payroll-rules.md)에 있다.
+
 ## 라이선스
 
 [MIT](LICENSE)

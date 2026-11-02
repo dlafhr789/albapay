@@ -31,6 +31,18 @@ infra             Terraform
 docs              공개 문서
 ```
 
+## 명령
+
+```
+pnpm install
+pnpm typecheck
+pnpm test             # 단위 테스트. DB 없이 돈다
+docker compose up -d  # DynamoDB Local (localhost:8000)
+pnpm test:int         # 통합 테스트. DYNAMODB_ENDPOINT로 다른 엔드포인트를 쓸 수 있다
+```
+
+Docker 이미지를 받을 수 없는 환경에서는 `pip install "moto[server]"`로 설치한 뒤 `moto_server -p 8000`을 띄우면 통합 테스트를 대신 돌릴 수 있다. moto와 DynamoDB Local은 동작이 조금씩 다를 수 있으니, PR을 병합하기 전에 DynamoDB Local에서도 통합 테스트를 돌린다.
+
 ## 도메인 규칙
 
 바꾸려면 먼저 ADR을 쓴다.
@@ -47,7 +59,7 @@ docs              공개 문서
   - 금액: `floor(min(계약 근무 분, 2400) × 시급 ÷ 300)`
   - 귀속: 주의 마지막 날이 속한 정산 기간
 - 상시 5인 미만 사업장이 전제다. 야간·연장·휴일 가산수당은 계산하지 않는다.
-- 확정한 정산 기간에 속한 근무는 수정·삭제 API가 409로 거부한다.
+- 정산은 기간이 끝난 뒤에만 확정할 수 있다. 확정한 기간에 속한 날짜로는 근무를 추가·수정·이동·삭제할 수 없고 API가 409로 거부한다.
 
 ## 인프라·보안 규칙
 
