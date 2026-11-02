@@ -14,10 +14,13 @@
 - API 요청 스키마와 응답 타입(`packages/shared`): 웹과 Lambda가 같은 zod 스키마로 입력을 검사한다. 근무 시각은 `HH:mm`으로 받고, 종료가 시작과 같거나 이르면 다음 날 종료로 바꿔 저장한다. 근무 수정은 전체 교체라서 생략한 필드가 기본값으로 바뀌지 않도록 모든 필드를 받는다
 - DynamoDB 저장소 계층(`packages/api`): 테이블 하나에 설정·근무·정산 확정을 담고 근무는 월 단위 파티션에 넣는다. 근무 수정·삭제는 `version` 조건부 쓰기로 동시 수정을 막고, 날짜 이동은 삭제와 생성을 트랜잭션 하나로 묶는다
 - 로컬 개발용 DynamoDB Local(`docker-compose.yml`)과 통합 테스트(`pnpm test:int`)
+- 설정·근무 API와 Lambda 핸들러: Hono로 라우팅하고 `X-App-Token` 헤더로 인증한다. `Authorization`은 CloudFront OAC가 Lambda 서명에 쓰기 때문에 쓰지 않는다. 토큰이 없으면 경로가 있든 없든 401이다. 오류는 모두 `{ error: { code, message, details } }` 형태로 돌려준다
+- 토큰 발급 스크립트(`issue-token`): 32바이트 난수 토큰을 만들고 서버에는 SHA-256 해시만 저장한다
 
 ### 문서
 
 - 데이터 모델과 키 설계 (`docs/data-model.md`), README에 개발 방법 추가
+- API 명세 (`docs/api.md`)
 
 ## 2026-10-31
 
