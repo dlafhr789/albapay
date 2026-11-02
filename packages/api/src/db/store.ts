@@ -4,6 +4,7 @@ import {
   PutCommand,
   QueryCommand,
   TransactWriteCommand,
+  UpdateCommand,
   type DynamoDBDocumentClient,
 } from '@aws-sdk/lib-dynamodb';
 import type {
@@ -12,6 +13,7 @@ import type {
   DeductionProfile,
   LocalDate,
   PayrollResult,
+  RuleRecord,
   ShiftRecord,
   WageEntry,
 } from '@albapay/shared';
@@ -21,6 +23,7 @@ import {
   keys,
   monthsBetween,
   PAYSLIP_PK,
+  RULE_PK,
   shiftPartition,
   type ItemKey,
   type TokenKind,
@@ -72,6 +75,25 @@ function toShiftRecord(source: ShiftRecord): ShiftRecord {
 
 function toShiftItem(shift: ShiftRecord): Item {
   return { ...keys.shift(shift.workDate, shift.id), entity: 'SHIFT', jobId: 'main', ...toShiftRecord(shift) };
+}
+
+function toRuleRecord(source: RuleRecord): RuleRecord {
+  return {
+    id: source.id,
+    slots: source.slots,
+    startDate: source.startDate,
+    endDate: source.endDate ?? null,
+    intervalWeeks: source.intervalWeeks,
+    skipDates: source.skipDates ?? [],
+    materializedThrough: source.materializedThrough ?? null,
+    version: source.version,
+    createdAt: source.createdAt,
+    updatedAt: source.updatedAt,
+  };
+}
+
+function toRuleItem(rule: RuleRecord): Item {
+  return { ...keys.rule(rule.id), entity: 'RULE', ...toRuleRecord(rule) };
 }
 
 function sortShifts(shifts: ShiftRecord[]): ShiftRecord[] {
@@ -313,6 +335,60 @@ export class Store {
     return current
       ? new StoreError('VERSION_CONFLICT', `다른 곳에서 먼저 수정된 근무입니다: ${id}`)
       : new StoreError('NOT_FOUND', `근무가 없습니다: ${id}`);
+  }
+
+  // ── 반복 규칙 ─────────────────────────────────────────
+
+  /** 시작일 순 */
+  async listRules(): Promise<RuleRecord[]> {
+    const items = await this.queryPartition(RULE_PK);
+    return items
+      .map((item) => toRuleRecord(item as unknown as RuleRecord))
+      .sort((a, b) => a.startDate.localeCompare(b.startDate) || a.id.localeCompare(b.id));
+  }
+
+  async getRule(id: string): Promise<RuleRecord | null> {
+    const item = await this.get(keys.rule(id));
+    return item ? toRuleRecord(item as unknown as RuleRecord) : null;
+  }
+
+  async createRule(rule: RuleRecord): Promise<void> {
+    try {
+      await this.db.send(
+        new PutCommand({
+          TableName: this.tableName,
+          Item: toRuleItem(rule),
+          ConditionExpression: 'attribute_not_exists(PK)',
+        }),
+      );
+    } catch (error) {
+      if (isAwsError(error, 'ConditionalCheckFailedException')) {
+        throw new StoreError('ALREADY_EXISTS', `이미 있는 규칙입니다: ${rule.id}`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * 근무를 어디까지 펼쳤는지만 바꾼다. 사용자가 고친 것이 아니라서 `version`은 그대로 둔다.
+   * 그사이 규칙이 지워졌으면 아무것도 쓰지 않고 false를 돌려준다.
+   */
+  async setRuleMaterializedThrough(id: string, date: LocalDate | null): Promise<boolean> {
+    try {
+      await this.db.send(
+        new UpdateCommand({
+          TableName: this.tableName,
+          Key: keys.rule(id),
+          UpdateExpression: 'SET materializedThrough = :date',
+          ConditionExpression: 'attribute_exists(PK)',
+          ExpressionAttributeValues: { ':date': date },
+        }),
+      );
+      return true;
+    } catch (error) {
+      if (isAwsError(error, 'ConditionalCheckFailedException')) return false;
+      throw error;
+    }
   }
 
   // ── 정산 확정 ─────────────────────────────────────────
