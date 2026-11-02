@@ -4,7 +4,7 @@
 
 ## 진행 중
 
-- 데이터와 API (`packages/api`): DynamoDB 저장소, 토큰 인증, 설정·근무·정산 API
+진행 중인 작업 없음.
 
 ## 2026-11-02
 
@@ -16,6 +16,7 @@
 - 로컬 개발용 DynamoDB Local(`docker-compose.yml`)과 통합 테스트(`pnpm test:int`)
 - 설정·근무 API와 Lambda 핸들러: Hono로 라우팅하고 `X-App-Token` 헤더로 인증한다. `Authorization`은 CloudFront OAC가 Lambda 서명에 쓰기 때문에 쓰지 않는다. 토큰이 없으면 경로가 있든 없든 401이다. 오류는 모두 `{ error: { code, message, details } }` 형태로 돌려준다
 - 토큰 발급 스크립트(`issue-token`): 32바이트 난수 토큰을 만들고 서버에는 SHA-256 해시만 저장한다
+- 정산 조회·확정 API: 확정하면 그때의 계산 결과를 저장해서 이후 시급이나 요율을 고쳐도 지난 급여 기록이 바뀌지 않는다. 기간이 끝난 뒤에만 확정할 수 있고, 확정한 기간의 근무는 추가·수정·이동·삭제가 409로 막힌다
 
 ### 문서
 

@@ -36,6 +36,8 @@ TABLE_NAME=<테이블> pnpm --filter @albapay/api issue-token api
 | 401 | `UNAUTHORIZED` | 토큰이 없거나 틀림 |
 | 404 | `NOT_FOUND` | 대상이나 경로가 없음 |
 | 409 | `VERSION_CONFLICT` | 다른 곳에서 먼저 수정됨. 다시 불러온 뒤 수정해야 한다 |
+| 409 | `PERIOD_LOCKED` | 확정한 정산 기간의 근무를 바꾸려 함. 확정을 먼저 해제해야 한다 |
+| 409 | `PERIOD_NOT_ENDED` | 아직 끝나지 않은 정산 기간을 확정하려 함 |
 | 409 | `NOT_CONFIGURED` | 설정이나 시급 이력이 없어 계산할 수 없음 |
 | 500 | `INTERNAL` | 서버 오류. 자세한 내용은 Lambda 로그에만 남는다 |
 
@@ -160,3 +162,62 @@ TABLE_NAME=<테이블> pnpm --filter @albapay/api issue-token api
   "updatedAt": "2026-11-13T15:02:11.512Z"
 }
 ```
+
+## 정산
+
+| 메서드 | 경로 | 하는 일 | 응답 |
+| --- | --- | --- | --- |
+| GET | `/api/payroll?period=2026-11` | 그 달에 시작하는 정산 기간의 결과. 확정한 기간이면 확정할 때의 결과 | 200 |
+| POST | `/api/payroll/{period}/lock` | 정산을 확정한다 | 201, 이미 확정했으면 200 |
+| DELETE | `/api/payroll/{period}/lock` | 확정을 해제한다 | 204, 없으면 404 |
+
+- `period`는 정산 기간이 시작하는 달이다. 정산 시작일이 25일이면 `2026-11`은 11월 25일부터 12월 24일까지다.
+- 화면이 금액을 다시 계산하지 않도록 판정 근거가 되는 중간값까지 모두 내려준다.
+- 정산은 기간이 끝난 다음 날(서울 기준)부터 확정할 수 있다.
+- 확정하면 그때의 계산 결과를 그대로 저장하고, 이후 조회에서는 다시 계산하지 않는다. 시급이나 요율을 나중에 고쳐도 지난 급여 기록이 바뀌지 않게 하기 위해서다.
+- 확정한 기간에 속한 날짜로는 근무를 추가, 수정, 이동, 삭제할 수 없다. 고치려면 확정을 해제한 뒤 고친다.
+
+응답 예시다. `weeklyHoliday`는 기간에 속한 다섯 주 중 첫 주만 적었다.
+
+```json
+{
+  "period": { "start": "2026-11-01", "end": "2026-11-30" },
+  "base": {
+    "confirmedMinutes": 2160,
+    "confirmedPay": 371520,
+    "expectedMinutes": 2100,
+    "expectedPay": 361200,
+    "totalMinutes": 4260,
+    "totalPay": 732720
+  },
+  "weeklyHoliday": [
+    {
+      "weekStart": "2026-10-26",
+      "weekEnd": "2026-11-01",
+      "contractMinutes": 900,
+      "averageContractMinutes": 900,
+      "averagedWeeks": 4,
+      "attended": true,
+      "eligible": true,
+      "holidayMinutes": 180,
+      "amount": 30960,
+      "final": true,
+      "actualMinutes": 900,
+      "averageActualMinutes": 900
+    }
+  ],
+  "weeklyHolidayTotal": 154800,
+  "gross": 887520,
+  "deductions": [
+    { "item": "BUSINESS_INCOME_TAX", "amount": 26620 },
+    { "item": "LOCAL_INCOME_TAX", "amount": 2660 }
+  ],
+  "deductionTotal": 29280,
+  "net": 858240,
+  "warnings": [],
+  "locked": false,
+  "lockedAt": null
+}
+```
+
+계산 규칙은 [payroll-rules.md](payroll-rules.md)에 있다.

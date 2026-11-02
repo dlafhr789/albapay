@@ -6,6 +6,7 @@ import type { AppDeps } from './deps';
 import { requireApiToken } from './http/auth';
 import { ApiError } from './http/errors';
 import { configRoutes } from './routes/config';
+import { payrollRoutes } from './routes/payroll';
 import { shiftRoutes } from './routes/shifts';
 
 function toApiError(error: unknown): ApiError | null {
@@ -41,6 +42,7 @@ export function createApp(
 
   app.route('/api', configRoutes(resolved));
   app.route('/api', shiftRoutes(resolved));
+  app.route('/api', payrollRoutes(resolved));
 
   app.notFound((c) =>
     c.json<ApiErrorBody>({ error: { code: 'NOT_FOUND', message: '없는 경로입니다.' } }, 404),

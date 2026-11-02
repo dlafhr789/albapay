@@ -11,6 +11,7 @@ import {
 import type { AppDeps } from '../deps';
 import { notFound, versionConflict } from '../http/errors';
 import { parse, readJson } from '../http/validate';
+import { assertNotLocked } from '../locks';
 
 const shiftParams = z.object({ workDate: localDateSchema, id: z.string().min(1).max(64) });
 
@@ -38,6 +39,7 @@ export function shiftRoutes({ store, now, newId }: AppDeps): Hono {
 
   app.post('/shifts', async (c) => {
     const input = parse(shiftCreateSchema, await readJson(c));
+    await assertNotLocked(store, [input.workDate]);
     const shift: ShiftRecord = {
       id: newId(),
       workDate: input.workDate,
@@ -62,6 +64,7 @@ export function shiftRoutes({ store, now, newId }: AppDeps): Hono {
     if (current.version !== input.version) {
       throw versionConflict('다른 곳에서 먼저 수정된 근무입니다. 다시 불러온 뒤 수정하세요.');
     }
+    await assertNotLocked(store, [current.workDate, input.workDate]);
 
     const updatedAt = now().toISOString();
     const fields = {
@@ -116,6 +119,7 @@ export function shiftRoutes({ store, now, newId }: AppDeps): Hono {
     const { version } = parse(z.object({ version: z.coerce.number().int().min(1) }), c.req.query());
     const current = await store.getShift(params.workDate, params.id);
     if (!current) throw notFound('근무가 없습니다.');
+    await assertNotLocked(store, [current.workDate]);
 
     if (current.ruleId !== null) {
       const cancelled = cancelledFromRule(current, now().toISOString());
