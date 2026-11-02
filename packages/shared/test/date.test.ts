@@ -37,9 +37,9 @@ describe('date', () => {
   });
 
   it('uses the Seoul date even when UTC is still on the previous day', () => {
-    // 2026-11-01 08:30 KST
+    // 서울 시각 2026-11-01 08:30
     expect(todayInSeoul(new Date('2026-10-31T23:30:00Z'))).toBe('2026-11-01');
-    // 2026-11-01 23:59 KST
+    // 서울 시각 2026-11-01 23:59
     expect(todayInSeoul(new Date('2026-11-01T14:59:00Z'))).toBe('2026-11-01');
   });
 });

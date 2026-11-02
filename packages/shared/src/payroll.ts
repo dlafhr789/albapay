@@ -70,7 +70,7 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
   const weeklyHoliday = calculateWeeklyHoliday(input);
   const weeklyHolidayTotal = weeklyHoliday.reduce((sum, week) => sum + week.amount, 0);
   const gross = base.totalPay + weeklyHolidayTotal;
-  // The profile in effect on the last day of the period applies to the whole period.
+  // 정산 기간 마지막 날에 적용되는 공제 방식을 기간 전체에 쓴다.
   const deductions = calculateDeductions(
     gross,
     findEffective(input.deductionProfiles, input.period.end),

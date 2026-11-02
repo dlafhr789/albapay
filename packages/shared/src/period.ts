@@ -5,7 +5,7 @@ import type { Period } from './types';
 const YEAR_MONTH_PATTERN = /^(\d{4})-(\d{2})$/;
 
 function assertStartDay(startDay: number): void {
-  // 29~31 would not exist in February, so the period boundaries would break.
+  // 29~31일은 2월에 없어서 기간 경계가 깨진다.
   if (!Number.isInteger(startDay) || startDay < 1 || startDay > 28) {
     throw new PayrollConfigError(
       'INVALID_PERIOD_START_DAY',

@@ -85,7 +85,7 @@ export function calculateWeeklyHoliday(input: WeeklyHolidayInput): WeeklyHoliday
     );
     const attended = contract > 0 && !hasAbsence;
 
-    // Weeks that ended before the hire date are left out of the average.
+    // 입사일 전에 끝난 주는 평균에서 뺀다.
     let contractSum = 0;
     let actualSum = 0;
     let averagedWeeks = 0;
@@ -102,7 +102,7 @@ export function calculateWeeklyHoliday(input: WeeklyHolidayInput): WeeklyHoliday
       averagedWeeks > 0 &&
       contractSum >= WEEKLY_HOLIDAY_THRESHOLD_MINUTES * averagedWeeks;
     const capped = Math.min(contract, WEEKLY_HOLIDAY_CAP_MINUTES);
-    // Same as (contract hours ÷ 40 × 8) × wage, kept in integers until the last division.
+    // (소정근로시간 ÷ 40 × 8) × 시급과 같다. 마지막 나눗셈 전까지 정수로 계산한다.
     const amount = eligible ? Math.floor((capped * wageOn(wages, weekEnd)) / 300) : 0;
 
     return {

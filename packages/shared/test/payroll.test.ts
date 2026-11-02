@@ -13,7 +13,7 @@ const WITHHOLDING: DeductionProfile = {
 };
 
 describe('calculatePayroll', () => {
-  // Fictional month: Mon/Wed/Fri 18-23 contract, one early start, one extra shift.
+  // 가상의 한 달: 월·수·금 18:00~23:00 계약 근무, 한 번 일찍 출근, 대타 한 번
   const november = periodStartingIn('2026-11', 1);
   const range = shiftRangeFor(november, 1);
   const shifts = weekly(range.from, range.to, [
