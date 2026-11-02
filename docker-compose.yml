@@ -1,0 +1,7 @@
+# 로컬 개발과 통합 테스트용 DynamoDB Local. 데이터는 메모리에만 있어서 컨테이너를 내리면 사라진다.
+services:
+  dynamodb:
+    image: amazon/dynamodb-local:latest
+    command: ["-jar", "DynamoDBLocal.jar", "-inMemory", "-sharedDb"]
+    ports:
+      - "8000:8000"
