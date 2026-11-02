@@ -8,6 +8,7 @@ export * from './history';
 export * from './payroll';
 export * from './period';
 export * from './rates';
+export * from './rules';
 export * from './shift';
 export * from './types';
 export * from './weeklyHoliday';

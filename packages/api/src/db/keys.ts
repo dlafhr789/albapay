@@ -4,6 +4,7 @@ import { makeDate, type LocalDate } from '@albapay/shared';
 
 export const CONFIG_PK = 'CONFIG';
 export const PAYSLIP_PK = 'PAYSLIP';
+export const RULE_PK = 'RULE';
 
 export type TokenKind = 'api' | 'cal';
 
@@ -22,6 +23,7 @@ export const keys = {
     SK: `${workDate}#${id}`,
   }),
   payslip: (periodStart: LocalDate): ItemKey => ({ PK: PAYSLIP_PK, SK: periodStart }),
+  rule: (id: string): ItemKey => ({ PK: RULE_PK, SK: id }),
 };
 
 /** 근무는 월 단위 파티션에 넣는다. 달력, 정산, 캘린더 피드가 모두 월별 Query로 끝난다. */

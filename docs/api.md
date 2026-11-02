@@ -36,7 +36,7 @@ TABLE_NAME=<테이블> pnpm --filter @albapay/api issue-token api
 | 401 | `UNAUTHORIZED` | 토큰이 없거나 틀림 |
 | 404 | `NOT_FOUND` | 대상이나 경로가 없음 |
 | 409 | `VERSION_CONFLICT` | 다른 곳에서 먼저 수정됨. 다시 불러온 뒤 수정해야 한다 |
-| 409 | `PERIOD_LOCKED` | 확정한 정산 기간의 근무를 바꾸려 함. 확정을 먼저 해제해야 한다 |
+| 409 | `PERIOD_LOCKED` | 확정한 정산 기간의 근무를 바꾸려 하거나, 반복 규칙이 그 기간과 겹침. 확정을 먼저 해제해야 한다 |
 | 409 | `PERIOD_NOT_ENDED` | 아직 끝나지 않은 정산 기간을 확정하려 함 |
 | 409 | `NOT_CONFIGURED` | 설정이나 시급 이력이 없어 계산할 수 없음 |
 | 500 | `INTERNAL` | 서버 오류. 자세한 내용은 Lambda 로그에만 남는다 |
@@ -162,6 +162,96 @@ TABLE_NAME=<테이블> pnpm --filter @albapay/api issue-token api
   "updatedAt": "2026-11-13T15:02:11.512Z"
 }
 ```
+
+## 반복 규칙
+
+반복 규칙은 요일별 근무 시각과 기간을 정해 두면 그 기간의 근무를 날짜별로 만들어 준다. 만든 근무는 직접 추가한 근무와 같은 형태라서 하루씩 따로 고칠 수 있다. 펼쳐 저장하는 이유는 [ADR 0001](decisions/0001-materialize-recurring-shifts.md)에 있다.
+
+| 메서드 | 경로 | 하는 일 | 응답 |
+| --- | --- | --- | --- |
+| GET | `/api/rules` | 규칙 목록을 시작일 순으로 | 200 `{ "rules": [...] }` |
+| POST | `/api/rules` | 규칙을 만들고 근무를 펼친다 | 201 |
+| POST | `/api/rules/{id}/split` | 이 날짜부터 다른 규칙으로 바꾼다 | 201 `{ "previous": ..., "next": ... }` |
+| POST | `/api/rules/{id}/end` | 이 날짜부터 규칙을 끝낸다 | 200 `{ "rule": ... }` |
+
+### 만들기
+
+```json
+{
+  "slots": [
+    { "dayOfWeek": 3, "start": "18:00", "end": "23:00", "breakMin": 0 },
+    { "dayOfWeek": 5, "start": "22:00", "end": "06:00", "breakMin": 60 }
+  ],
+  "startDate": "2026-11-04",
+  "endDate": null,
+  "intervalWeeks": 1
+}
+```
+
+- `dayOfWeek`는 0이 일요일, 6이 토요일이다. 시각은 근무 입력과 같은 규칙으로 검사한다.
+- 규칙 하나에 같은 요일은 한 번만 넣는다. 하루에 두 번 일하는 날은 하나를 직접 추가한다.
+- `endDate`는 마지막 근무 날짜이고, `null`이면 끝이 없다.
+- `intervalWeeks`가 2면 격주다. 시작일이 속한 주를 첫 근무 주로 세고, 주는 월요일부터 센다. 토요일에 시작하는 격주 주말 규칙은 그 토·일과 2주 뒤 토·일에 근무가 생긴다.
+- 시작일부터 종료일까지가 확정한 정산 기간과 겹치면 409 `PERIOD_LOCKED`다. 지난 날짜도 확정하지 않은 기간이면 시작일로 쓸 수 있다.
+
+저장하면 바로 오늘부터 90일 뒤까지(종료일이 더 이르면 종료일까지) 근무를 만든다. 그 뒤는 매일 새벽 4시(서울)에 도는 작업이 하루씩 채운다. 시작일이 90일보다 뒤면 그날이 가까워질 때 만든다.
+
+- 만든 근무의 `id`는 `r_<규칙 id>_<YYYYMMDD>`, `ruleId`는 규칙 `id`, `kind`는 `REGULAR`(계약 근무)다.
+- 이미 같은 `id`의 근무가 있으면 덮어쓰지 않는다. 사용자가 고친 근무는 펼치기를 다시 돌려도 그대로 남는다.
+- 확정한 정산 기간의 날짜에는 근무를 만들지 않는다.
+
+### 바꾸기와 끝내기
+
+규칙은 고쳐 쓰지 않고 날짜 하나를 기준으로 나눈다. 그 날짜 전의 근무는 기존 규칙에 그대로 남아서, 지난 근무 기록이 규칙 수정 때문에 바뀌지 않는다.
+
+```json
+POST /api/rules/{id}/split
+{
+  "version": 1,
+  "fromDate": "2026-11-30",
+  "slots": [
+    { "dayOfWeek": 6, "start": "12:00", "end": "18:00", "breakMin": 0 },
+    { "dayOfWeek": 0, "start": "12:00", "end": "18:00", "breakMin": 0 }
+  ],
+  "endDate": null,
+  "intervalWeeks": 1
+}
+
+POST /api/rules/{id}/end
+{ "version": 1, "fromDate": "2026-12-01" }
+```
+
+- `fromDate`는 바뀐 일정(또는 근무 없음)이 시작되는 첫날이다. 기존 규칙의 종료일은 그 전날이 된다.
+- 기존 규칙에서 `fromDate` 이후에 만든 근무는 지운다. 단, 따로 고친 근무(`detached`, 빠진 날 포함)는 남긴다.
+- 나누기로 만든 새 규칙은 그렇게 남은 근무의 날짜를 `skipDates`에 넣어서 같은 날 근무를 하나 더 만들지 않는다.
+- `fromDate`가 기존 규칙의 시작일 이전이면 기존 규칙은 근무가 하나도 없게 되어 지워진다. 이때 `previous`(끝내기는 `rule`)가 `null`이다.
+- 기존 규칙이 이미 끝난 뒤의 날짜면 400이다. 그 뒤의 일정은 새 규칙으로 만든다.
+- `fromDate` 이후가 확정한 정산 기간과 겹치면 409 `PERIOD_LOCKED`다. 확정하지 않은 기간이면 지난 날짜부터도 바꿀 수 있다.
+- 나누기는 기존 규칙을 고치는 쓰기와 새 규칙을 만드는 쓰기를 트랜잭션 하나로 묶는다.
+
+### 응답 형태
+
+```json
+{
+  "id": "01JC8Q4K2D9F7T3B5X1W6N8M0P",
+  "slots": [
+    { "dayOfWeek": 3, "start": "18:00", "end": "23:00", "breakMin": 0 },
+    { "dayOfWeek": 5, "start": "22:00", "end": "06:00", "breakMin": 60 }
+  ],
+  "startDate": "2026-11-04",
+  "endDate": null,
+  "intervalWeeks": 1,
+  "skipDates": [],
+  "materializedThrough": "2027-01-31",
+  "version": 1,
+  "createdAt": "2026-11-02T03:00:00.000Z",
+  "updatedAt": "2026-11-02T03:00:00.000Z"
+}
+```
+
+- `materializedThrough`는 근무를 어디까지 만들었는지다. 아직 하나도 만들지 않았으면 `null`이다.
+- `skipDates`는 근무를 만들지 않는 날짜다. 규칙을 나눌 때 채워진다.
+- `version`은 바꾸기·끝내기를 할 때 마지막으로 읽은 값을 보낸다. 근무를 채우는 작업은 `version`을 올리지 않는다.
 
 ## 정산
 
