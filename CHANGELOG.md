@@ -12,6 +12,7 @@
 
 - Lambda 배포 묶음 빌드(`pnpm --filter @albapay/api build`): esbuild로 함수마다 CommonJS 파일 하나와 소스 맵을 만든다. AWS SDK도 묶어서 Lambda 런타임의 SDK 버전이 바뀌어도 동작이 그대로다. 테스트가 소스 대신 실제 묶음을 불러서 Function URL 이벤트에 응답하는지 확인한다
 - Terraform 상태 버킷(`infra/bootstrap`): 버전 관리, 공개 접근 차단, HTTPS 강제, 삭제 방지. 버킷 이름에 계정 ID 대신 난수를 붙인다
+- DynamoDB 테이블, Lambda 함수 2개, 매일 도는 작업(`infra/app`): 테이블은 상시 무료 한도 안의 프로비저닝 용량에 시점 복구와 삭제 방지를 켠다. Lambda는 nodejs22.x가 2027-04-30에 지원이 끝나서 nodejs24.x로 올린다. 함수마다 IAM 역할을 따로 두고 테이블과 자기 로그 그룹에만 권한을 준다. Scheduler는 서울 시간대로 매일 04:00에 돈다
 
 ### 문서
 

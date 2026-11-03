@@ -38,3 +38,39 @@ terraform output -raw state_bucket
 - `prevent_destroy`가 걸려 있어서 `terraform destroy`로 지워지지 않는다.
 
 `infra/bootstrap/terraform.tfstate`는 `.gitignore`에 들어 있다. 커밋하지 않는다.
+
+## 2. 앱 리소스
+
+```bash
+pnpm install
+pnpm --filter @albapay/api build      # Lambda 묶음. Terraform이 이 결과를 압축해서 올린다
+
+cd infra/app
+cp backend.hcl.example backend.hcl    # bucket에 1단계의 state_bucket을 넣는다
+terraform init -backend-config=backend.hcl
+terraform plan -out=app.tfplan       # *.tfplan은 .gitignore에 들어 있다
+terraform apply app.tfplan
+```
+
+코드를 바꾼 뒤에는 빌드하고 `terraform apply`만 다시 하면 된다. 묶음의 해시가 바뀐 함수만 새로 올라간다.
+
+| 리소스 | 설정 | 이유 |
+| --- | --- | --- |
+| DynamoDB 테이블 | 프로비저닝 읽기·쓰기 각 10, 시점 복구, 삭제 방지 | 상시 무료 한도(각 25) 안에서 고정 비용 0원. 실수로 지우거나 덮어쓴 데이터를 35일 안으로 되돌릴 수 있다 |
+| Lambda `api` | Node.js 24, arm64, 512MB, 10초 | 웹앱 API. 메모리를 늘리면 CPU도 늘어서 콜드 스타트가 짧아진다 |
+| Lambda `materializer` | Node.js 24, arm64, 256MB, 120초 | 반복 규칙의 근무를 채운다. 규칙을 처음 펼칠 때 근무 수십 건을 차례로 쓴다 |
+| 로그 그룹 | 30일 보관 | 함수가 처음 로그를 쓸 때 자동으로 생기는 로그 그룹은 보관 기간이 무제한이다 |
+| EventBridge Scheduler | 매일 04:00 Asia/Seoul | 서울 시간대로 지정해서 UTC 변환을 하지 않는다 |
+
+함수마다 IAM 역할을 따로 두고, 테이블 하나와 자기 로그 그룹에만 권한을 준다.
+
+## 3. 토큰 발급
+
+웹앱과 API가 쓰는 토큰을 발급한다. 서버에는 SHA-256 해시만 저장되고 원본은 이때 한 번만 화면에 나온다. 비밀번호 관리자 같은 곳에 바로 저장한다. 저장소 루트에서 실행한다.
+
+```bash
+TABLE_NAME=$(terraform -chdir=infra/app output -raw table_name) \
+  pnpm --filter @albapay/api issue-token api
+```
+
+다시 발급하면 저장된 해시가 바뀌어서 이전 토큰은 바로 쓸 수 없다.
