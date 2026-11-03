@@ -4,7 +4,7 @@
 
 ## 진행 중
 
-- AWS 배포 (`infra`): Terraform으로 DynamoDB, Lambda, CloudFront, S3, 매일 도는 작업을 만든다
+진행 중인 작업 없음.
 
 ## 2026-11-03
 
@@ -14,10 +14,14 @@
 - Terraform 상태 버킷(`infra/bootstrap`): 버전 관리, 공개 접근 차단, HTTPS 강제, 삭제 방지. 버킷 이름에 계정 ID 대신 난수를 붙인다
 - DynamoDB 테이블, Lambda 함수 2개, 매일 도는 작업(`infra/app`): 테이블은 상시 무료 한도 안의 프로비저닝 용량에 시점 복구와 삭제 방지를 켠다. Lambda는 nodejs22.x가 2027-04-30에 지원이 끝나서 nodejs24.x로 올린다. 함수마다 IAM 역할을 따로 두고 테이블과 자기 로그 그룹에만 권한을 준다. Scheduler는 서울 시간대로 매일 04:00에 돈다
 - 월 예산 알림(`infra/app/budget.tf`): 이메일을 넣으면 예상 비용 80%, 실제 비용 100%에서 메일을 보낸다. 평소 요금이 무료 한도 안이라 요금이 나오면 설정 실수나 비정상 호출을 바로 알 수 있다
+- CloudFront와 S3 웹 버킷, Lambda Function URL: 웹앱과 API를 한 도메인으로 내보낸다. Function URL은 IAM 인증이라 CloudFront OAC가 서명한 요청만 받고, 직접 부르면 403이다. `/api/*`는 캐시하지 않는다. CSP, HSTS 같은 보안 헤더를 모든 응답에 붙인다 ([ADR 0002](docs/decisions/0002-cloudfront-lambda-function-url-oac.md))
+- Terraform 구성 테스트(`infra/app/tests`): AWS 공급자를 가짜로 바꿔 계정 없이 돌고, Function URL 인증 방식이나 CloudFront 권한 같은 보안 설정이 바뀌면 실패한다
+- API 호출 스크립트(`pnpm --filter @albapay/api call`): 토큰 헤더와 본문 SHA-256 헤더를 붙여서 배포한 API를 터미널에서 부른다
 
 ### 문서
 
 - 배포 방법 (`docs/deploy.md`)
+- AWS 구성과 요청 흐름 (`docs/architecture.md`)
 
 ## 2026-11-02
 

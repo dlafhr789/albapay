@@ -54,6 +54,8 @@ terraform plan -out=app.tfplan       # *.tfplan은 .gitignore에 들어 있다
 terraform apply app.tfplan
 ```
 
+구성 전체와 요청 흐름은 [architecture.md](architecture.md)에 있다.
+
 코드를 바꾼 뒤에는 빌드하고 `terraform apply`만 다시 하면 된다. 묶음의 해시가 바뀐 함수만 새로 올라간다.
 
 | 리소스 | 설정 | 이유 |
@@ -63,6 +65,8 @@ terraform apply app.tfplan
 | Lambda `materializer` | Node.js 24, arm64, 256MB, 120초 | 반복 규칙의 근무를 채운다. 규칙을 처음 펼칠 때 근무 수십 건을 차례로 쓴다 |
 | 로그 그룹 | 30일 보관 | 함수가 처음 로그를 쓸 때 자동으로 생기는 로그 그룹은 보관 기간이 무제한이다 |
 | EventBridge Scheduler | 매일 04:00 Asia/Seoul | 서울 시간대로 지정해서 UTC 변환을 하지 않는다 |
+| CloudFront | `/api/*`는 Lambda, 그 외는 S3 | 웹앱과 API를 한 도메인으로 내보낸다. 처음 만들거나 바꾸면 전 세계 엣지에 퍼지는 데 몇 분 걸린다 |
+| S3 웹 버킷 | 공개 접근 차단 | 이 CloudFront 배포만 읽을 수 있다 |
 
 함수마다 IAM 역할을 따로 두고, 테이블 하나와 자기 로그 그룹에만 권한을 준다.
 
@@ -84,3 +88,36 @@ TABLE_NAME=$(terraform -chdir=infra/app output -raw table_name) \
 ```
 
 다시 발급하면 저장된 해시가 바뀌어서 이전 토큰은 바로 쓸 수 없다.
+
+## 4. 확인
+
+웹앱이 아직 없어도 터미널에서 API를 부를 수 있다. 호출 스크립트(`packages/api/scripts/call.ts`)가 토큰 헤더와 본문 해시 헤더를 붙여 준다. 토큰은 셸 기록에 남지 않게 `read -s`로 입력받는다.
+
+```bash
+export ALBAPAY_URL=$(terraform -chdir=infra/app output -raw url)
+read -rs ALBAPAY_TOKEN && export ALBAPAY_TOKEN
+pnpm --filter @albapay/api call GET /api/config
+```
+
+`200 OK`와 `{ "settings": null, "wages": [], "deductions": [] }`가 나오면 CloudFront, Function URL, Lambda, DynamoDB가 모두 이어진 것이다. 본문이 있는 요청은 이렇게 보낸다.
+
+```bash
+pnpm --filter @albapay/api call PUT /api/config/wages/2026-01-01 '{"hourlyWage":10320}'
+```
+
+CloudFront를 거치지 않으면 막히는지도 확인한다. Function URL로 직접 보내면 서명이 없어서 `403`이 나와야 한다.
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' \
+  "$(aws lambda get-function-url-config --function-name albapay-api --query FunctionUrl --output text)api/config"
+```
+
+## 구성 검사
+
+`infra/app/tests`의 테스트는 AWS 공급자를 가짜로 바꿔서 계정 없이 돈다. Function URL 인증 방식, CloudFront 권한, `/api/*` 캐시 정책 같은 보안 설정이 바뀌면 실패한다.
+
+```bash
+terraform -chdir=infra/app init -backend=false
+terraform -chdir=infra/app test
+terraform fmt -check -recursive infra
+```
