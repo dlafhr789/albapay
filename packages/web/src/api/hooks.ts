@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
+  AppSettings,
   ConfigResponse,
+  DeductionInput,
+  DeductionProfile,
   LocalDate,
   PayrollResponse,
   RuleCreateInput,
@@ -10,6 +13,7 @@ import type {
   ShiftCreateInput,
   ShiftRecord,
   ShiftUpdateInput,
+  WageEntry,
 } from '@albapay/shared';
 import { request } from './client';
 
@@ -141,6 +145,57 @@ export function useEndRule() {
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: RuleEndInput }) =>
       request<{ rule: RuleRecord | null }>('POST', `/api/rules/${encodeURIComponent(id)}/end`, { body: input }),
+    onSuccess: invalidate,
+  });
+}
+
+function useInvalidateConfig() {
+  const client = useQueryClient();
+  return () =>
+    Promise.all([
+      client.invalidateQueries({ queryKey: keys.config }),
+      client.invalidateQueries({ queryKey: keys.allPayroll }),
+    ]);
+}
+
+export function useSaveSettings() {
+  const invalidate = useInvalidateConfig();
+  return useMutation({
+    mutationFn: (settings: AppSettings) => request<AppSettings>('PUT', '/api/config/settings', { body: settings }),
+    onSuccess: invalidate,
+  });
+}
+
+export function usePutWage() {
+  const invalidate = useInvalidateConfig();
+  return useMutation({
+    mutationFn: (entry: WageEntry) =>
+      request<WageEntry>('PUT', `/api/config/wages/${entry.effectiveFrom}`, { body: { hourlyWage: entry.hourlyWage } }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useDeleteWage() {
+  const invalidate = useInvalidateConfig();
+  return useMutation({
+    mutationFn: (effectiveFrom: LocalDate) => request<undefined>('DELETE', `/api/config/wages/${effectiveFrom}`),
+    onSuccess: invalidate,
+  });
+}
+
+export function usePutDeduction() {
+  const invalidate = useInvalidateConfig();
+  return useMutation({
+    mutationFn: ({ effectiveFrom, input }: { effectiveFrom: LocalDate; input: DeductionInput }) =>
+      request<DeductionProfile>('PUT', `/api/config/deductions/${effectiveFrom}`, { body: input }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useDeleteDeduction() {
+  const invalidate = useInvalidateConfig();
+  return useMutation({
+    mutationFn: (effectiveFrom: LocalDate) => request<undefined>('DELETE', `/api/config/deductions/${effectiveFrom}`),
     onSuccess: invalidate,
   });
 }

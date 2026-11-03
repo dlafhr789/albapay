@@ -1,15 +1,18 @@
-import { matchPath, useLocation } from '../lib/router';
+import { Link, matchPath, useLocation } from '../lib/router';
 import { Calendar, DayScreen } from '../screens/Calendar';
 import { Payroll } from '../screens/Payroll';
 import { RuleEditorScreen } from '../screens/RuleEditor';
 import { Rules } from '../screens/Rules';
+import { Settings } from '../screens/Settings';
 import { Layout } from './Layout';
 
-function Pending({ title }: { title: string }) {
+function NotFound() {
   return (
     <div className="page">
-      <h1 className="page-title">{title}</h1>
-      <p className="empty">아직 만들지 않은 화면이에요.</p>
+      <h1 className="page-title">없는 화면</h1>
+      <p className="empty">
+        주소가 맞는지 확인해 주세요. <Link to="/">달력으로 가기</Link>
+      </p>
     </div>
   );
 }
@@ -54,10 +57,16 @@ export function Routes() {
       </Layout>
     );
   }
-  const title = path.startsWith('/settings') ? '설정' : '없는 화면';
+  if (path === '/settings') {
+    return (
+      <Layout>
+        <Settings />
+      </Layout>
+    );
+  }
   return (
     <Layout>
-      <Pending title={title} />
+      <NotFound />
     </Layout>
   );
 }
