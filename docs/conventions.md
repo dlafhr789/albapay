@@ -69,6 +69,7 @@ git config core.hooksPath .githooks
 | --- | --- | --- |
 | `README.md` | 소개, 스크린샷, 아키텍처 요약, 실행·배포 방법 | 사용자가 보는 기능이 바뀔 때 |
 | `docs/architecture.md` | AWS 구성과 요청 흐름 | 리소스나 흐름이 바뀔 때 |
+| `docs/deploy.md` | 배포 절차와 운영 명령 | 배포 방법이 바뀔 때 |
 | `docs/payroll-rules.md` | 급여 계산 규칙과 테스트 케이스 | 계산 로직이 바뀔 때 |
 | `docs/data-model.md` | DynamoDB 키 설계와 접근 패턴 | 저장 구조가 바뀔 때 |
 | `docs/api.md` | 엔드포인트, 요청·응답 형식 | API가 바뀔 때 |

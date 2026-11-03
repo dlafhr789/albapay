@@ -26,6 +26,8 @@ override.tf.json
 *_override.tf.json
 .terraformrc
 terraform.rc
+infra/app/backend.hcl
+infra/app/.build/
 
 # 개인 맥락 (커밋 금지)
 .private/

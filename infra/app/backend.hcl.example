@@ -1,0 +1,4 @@
+# backend.hcl로 복사해서 쓴다. backend.hcl은 .gitignore에 들어 있다.
+# bucket은 infra/bootstrap에서 terraform output -raw state_bucket으로 확인한다.
+bucket = "albapay-tfstate-xxxxxxxxxxxxxxxxxxxxxxxxxx"
+region = "ap-northeast-2"

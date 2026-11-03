@@ -7,8 +7,10 @@
     "test": "vitest run",
     "test:int": "vitest run --config vitest.integration.config.ts",
     "typecheck": "tsc -p tsconfig.json",
+    "build": "tsx scripts/build.ts",
     "create-local-table": "tsx scripts/create-local-table.ts",
-    "issue-token": "tsx scripts/issue-token.ts"
+    "issue-token": "tsx scripts/issue-token.ts",
+    "call": "tsx scripts/call.ts"
   },
   "dependencies": {
     "@albapay/shared": "workspace:*",
@@ -21,6 +23,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
+    "esbuild": "^0.28.2",
     "tsx": "^4.23.15"
   }
 }

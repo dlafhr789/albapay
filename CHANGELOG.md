@@ -6,6 +6,25 @@
 
 진행 중인 작업 없음.
 
+## 2026-11-03
+
+### 추가
+
+- Lambda 배포 묶음 빌드(`pnpm --filter @albapay/api build`): esbuild로 함수마다 CommonJS 파일 하나와 소스 맵을 만든다. AWS SDK도 묶어서 Lambda 런타임의 SDK 버전이 바뀌어도 동작이 그대로다. 테스트가 소스 대신 실제 묶음을 불러서 Function URL 이벤트에 응답하는지 확인한다
+- Terraform 상태 버킷(`infra/bootstrap`): 버전 관리, 공개 접근 차단, HTTPS 강제, 삭제 방지. 버킷 이름에 계정 ID 대신 난수를 붙인다
+- DynamoDB 테이블, Lambda 함수 2개, 매일 도는 작업(`infra/app`): 테이블은 상시 무료 한도 안의 프로비저닝 용량에 시점 복구와 삭제 방지를 켠다. Lambda는 nodejs22.x가 2027-04-30에 지원이 끝나서 nodejs24.x로 올린다. 함수마다 IAM 역할을 따로 두고 테이블과 자기 로그 그룹에만 권한을 준다. Scheduler는 서울 시간대로 매일 04:00에 돈다
+- 월 예산 알림(`infra/app/budget.tf`): 이메일을 넣으면 예상 비용 80%, 실제 비용 100%에서 메일을 보낸다. 평소 요금이 무료 한도 안이라 요금이 나오면 설정 실수나 비정상 호출을 바로 알 수 있다
+- CloudFront와 S3 웹 버킷, Lambda Function URL: 웹앱과 API를 한 도메인으로 내보낸다. Function URL은 IAM 인증이라 CloudFront OAC가 서명한 요청만 받고, 직접 부르면 403이다. `/api/*`는 캐시하지 않는다. CSP, HSTS 같은 보안 헤더를 모든 응답에 붙인다 ([ADR 0002](docs/decisions/0002-cloudfront-lambda-function-url-oac.md))
+- Terraform 구성 테스트(`infra/app/tests`): AWS 공급자를 가짜로 바꿔 계정 없이 돌고, Function URL 인증 방식이나 CloudFront 권한 같은 보안 설정이 바뀌면 실패한다
+- API 호출 스크립트(`pnpm --filter @albapay/api call`): 토큰 헤더와 본문 SHA-256 헤더를 붙여서 배포한 API를 터미널에서 부른다
+- Terraform 공급자 잠금 파일(`.terraform.lock.hcl`): 첫 배포 때 만든 공급자 버전과 해시를 고정한다
+
+### 문서
+
+- 배포 방법 (`docs/deploy.md`)
+- AWS 구성과 요청 흐름 (`docs/architecture.md`)
+- 배포 문서를 실제 첫 배포 절차에 맞게 고침: 배포용 IAM 사용자와 인라인 정책(`infra/deployer-policy.json`), 액세스 키 없이 `aws login`으로 받는 짧은 수명의 자격 증명, `backend.hcl`을 상태 버킷 출력에서 바로 만드는 명령. zsh에 그대로 붙여 넣어도 되게 명령 줄의 주석을 본문으로 옮김
+
 ## 2026-11-02
 
 ### 추가
