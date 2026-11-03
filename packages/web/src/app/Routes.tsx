@@ -5,6 +5,7 @@ import { RuleEditorScreen } from '../screens/RuleEditor';
 import { Rules } from '../screens/Rules';
 import { Settings } from '../screens/Settings';
 import { Layout } from './Layout';
+import { SidebarSummary } from './SidebarSummary';
 
 function NotFound() {
   return (
@@ -23,28 +24,28 @@ export function Routes() {
   const day = matchPath('/day/:date', path);
   if (day?.['date']) {
     return (
-      <Layout tabs={false}>
+      <Layout tabs={false} summary={<SidebarSummary />}>
         <DayScreen date={day['date']} />
       </Layout>
     );
   }
   if (path === '/') {
     return (
-      <Layout>
+      <Layout summary={<SidebarSummary />}>
         <Calendar />
       </Layout>
     );
   }
   if (path === '/payroll') {
     return (
-      <Layout>
+      <Layout summary={<SidebarSummary />}>
         <Payroll />
       </Layout>
     );
   }
   if (path === '/rules') {
     return (
-      <Layout>
+      <Layout summary={<SidebarSummary />}>
         <Rules />
       </Layout>
     );
@@ -52,20 +53,20 @@ export function Routes() {
   const rule = matchPath('/rules/:id', path);
   if (rule?.['id']) {
     return (
-      <Layout tabs={false}>
+      <Layout tabs={false} summary={<SidebarSummary />}>
         <RuleEditorScreen id={rule['id'] === 'new' ? null : rule['id']} />
       </Layout>
     );
   }
   if (path === '/settings') {
     return (
-      <Layout>
+      <Layout summary={<SidebarSummary />}>
         <Settings />
       </Layout>
     );
   }
   return (
-    <Layout>
+    <Layout summary={<SidebarSummary />}>
       <NotFound />
     </Layout>
   );
