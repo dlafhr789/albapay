@@ -45,6 +45,12 @@ pnpm --filter @albapay/api build
 pnpm --filter @albapay/api dev
 ```
 
+웹앱은 다른 터미널에서 띄운다. `http://localhost:5173`에서 열리고 `/api` 요청은 위의 로컬 API로 넘어간다. 처음 열면 토큰을 묻는데 `local-dev-token`을 넣는다.
+
+```bash
+pnpm --filter @albapay/web dev
+```
+
 데이터 구조는 [docs/data-model.md](docs/data-model.md), 급여 계산 규칙은 [docs/payroll-rules.md](docs/payroll-rules.md), 배포 방법은 [docs/deploy.md](docs/deploy.md)에 있다.
 
 ## 라이선스

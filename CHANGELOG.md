@@ -19,6 +19,8 @@
 - API 호출 스크립트(`pnpm --filter @albapay/api call`): 토큰 헤더와 본문 SHA-256 헤더를 붙여서 배포한 API를 터미널에서 부른다
 - Terraform 공급자 잠금 파일(`.terraform.lock.hcl`): 첫 배포 때 만든 공급자 버전과 해시를 고정한다
 - 로컬 API 서버(`pnpm --filter @albapay/api dev`): Lambda와 같은 앱을 Node 서버로 띄워 DynamoDB Local에 붙인다. 테이블과 개발용 토큰을 알아서 준비하고, DynamoDB 주소가 로컬이 아니면 실행하지 않는다
+- 웹앱 골격(`packages/web`): React 19, Vite, TanStack Query. 휴대폰은 아래 탭, 컴퓨터(1024px 이상)는 왼쪽 사이드바 메뉴. IBM Plex Sans KR을 직접 내보내서 CSP(`default-src 'self'`)를 지킨다
+- API 클라이언트와 토큰 입력 화면: 토큰은 `X-App-Token`으로, 본문은 SHA-256을 `x-amz-content-sha256`에 넣어 보낸다. 입력한 토큰은 서버에 한 번 물어본 뒤 저장하고, 나중에 401이 오면 지우고 입력 화면으로 돌아간다
 
 ### 문서
 
