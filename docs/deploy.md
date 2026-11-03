@@ -12,13 +12,43 @@ AWS 계정 하나에 Terraform으로 배포한다. 구성은 둘로 나뉜다.
 ## 준비
 
 - Terraform 1.10 이상. S3 백엔드의 `use_lockfile`(DynamoDB 테이블 없이 상태 잠금)이 1.10부터 있다.
-- AWS CLI와, 리소스를 만들 권한이 있는 자격 증명. `aws sts get-caller-identity`가 계정 정보를 보여 주면 된다.
+- AWS CLI 2.32 이상. 아래의 `aws login`이 2.32부터 있다.
 - 2025년 7월 15일 이후에 만든 계정이 무료 플랜(Free plan)이면 6개월이 지나거나 크레딧을 다 쓰면 계정이 닫힌다. 계속 쓸 앱이라 유료 플랜(Paid plan)으로 바꿔 둔다. 유료 플랜에서도 상시 무료 한도는 그대로 적용된다.
+
+아래 명령 블록은 그대로 붙여 넣어도 되게 명령 줄에 주석을 달지 않았다. macOS 기본 셸인 zsh는 대화형으로 입력한 명령의 `#`을 주석으로 보지 않는다.
+
+### 배포용 IAM 사용자
+
+루트 계정 자격 증명은 CLI에 등록하지 않는다. 배포만 하는 IAM 사용자를 따로 만든다.
+
+1. IAM 콘솔에서 사용자를 만들고 콘솔 접근을 켠다. `aws login`이 콘솔 로그인을 쓰기 때문이다. MFA를 등록하고, 액세스 키는 만들지 않는다.
+2. AWS 관리형 정책 두 개를 붙인다.
+   - `PowerUserAccess`: IAM과 Organizations를 뺀 모든 서비스
+   - `SignInLocalDevelopmentAccess`: `aws login`
+3. [`infra/deployer-policy.json`](../infra/deployer-policy.json)을 인라인 정책으로 붙인다. Terraform이 Lambda와 Scheduler의 IAM 역할을 만들어야 해서, 이름이 `albapay-`로 시작하는 역할만 만들고 고칠 수 있게 한다. 이 사용자는 다른 사용자를 만들거나 자기 권한을 늘릴 수 없다.
+
+### CLI 로그인
+
+`aws login`은 브라우저로 콘솔에 로그인해서 짧은 수명의 자격 증명을 받는다. 자격 증명은 15분마다 새로 받고 세션은 최대 12시간이라, 오래 사는 액세스 키가 파일에 남지 않는다.
 
 ```bash
 brew install hashicorp/tap/terraform
-aws configure sso   # 또는 aws configure
-export AWS_PROFILE=<프로필 이름>
+aws login --profile albapay-signin
+```
+
+Terraform 같은 도구는 이 로그인 방식을 아직 직접 읽지 못할 수 있다. 그래서 CLI가 자격 증명을 꺼내 넘겨주는 프로필을 `~/.aws/config`에 하나 더 둔다.
+
+```ini
+[profile albapay]
+credential_process = aws configure export-credentials --profile albapay-signin --format process
+region = ap-northeast-2
+```
+
+새 터미널마다 프로필을 지정하고, 배포용 사용자로 들어왔는지 확인한다. 세션이 끝나면 `aws login --profile albapay-signin`만 다시 하면 된다.
+
+```bash
+export AWS_PROFILE=albapay
+aws sts get-caller-identity
 ```
 
 ## 1. 상태 버킷
@@ -40,17 +70,31 @@ terraform output -raw state_bucket
 
 `infra/bootstrap/terraform.tfstate`는 `.gitignore`에 들어 있다. 커밋하지 않는다.
 
+`terraform init`이 만드는 `.terraform.lock.hcl`은 커밋한다. 공급자 버전과 해시를 고정해서, 다른 컴퓨터나 CI에서도 같은 공급자를 받는다.
+
 ## 2. 앱 리소스
+
+Lambda 묶음을 빌드한다. Terraform이 이 결과를 압축해서 올린다.
 
 ```bash
 pnpm install
-pnpm --filter @albapay/api build      # Lambda 묶음. Terraform이 이 결과를 압축해서 올린다
+pnpm --filter @albapay/api build
+```
 
+커밋하지 않는 설정 파일 두 개를 만든다. `backend.hcl`에는 1단계의 상태 버킷 이름이 들어가고, `terraform.tfvars`에는 예산 알림을 받을 이메일을 넣는다.
+
+```bash
 cd infra/app
-cp backend.hcl.example backend.hcl    # bucket에 1단계의 state_bucket을 넣는다
-cp terraform.tfvars.example terraform.tfvars   # 예산 알림을 받을 이메일
+printf 'bucket = "%s"\nregion = "ap-northeast-2"\n' "$(terraform -chdir=../bootstrap output -raw state_bucket)" > backend.hcl
+cp terraform.tfvars.example terraform.tfvars
+open -e terraform.tfvars
+```
+
+계획을 파일로 저장한 뒤 그 계획 그대로 적용한다. `Plan:` 줄에서 `to destroy`가 0인지 보고 진행한다. 계획 파일(`*.tfplan`)은 `.gitignore`에 들어 있다.
+
+```bash
 terraform init -backend-config=backend.hcl
-terraform plan -out=app.tfplan       # *.tfplan은 .gitignore에 들어 있다
+terraform plan -out=app.tfplan
 terraform apply app.tfplan
 ```
 
@@ -91,15 +135,16 @@ TABLE_NAME=$(terraform -chdir=infra/app output -raw table_name) \
 
 ## 4. 확인
 
-웹앱이 아직 없어도 터미널에서 API를 부를 수 있다. 호출 스크립트(`packages/api/scripts/call.ts`)가 토큰 헤더와 본문 해시 헤더를 붙여 준다. 토큰은 셸 기록에 남지 않게 `read -s`로 입력받는다.
+웹앱이 아직 없어도 터미널에서 API를 부를 수 있다. 호출 스크립트(`packages/api/scripts/call.ts`)가 토큰 헤더와 본문 해시 헤더를 붙여 준다. 토큰은 셸 기록에 남지 않게 `read -s`로 입력받는다. `read` 줄에서는 화면에 아무것도 보이지 않는 채로 토큰을 붙여 넣고 엔터를 친다.
 
 ```bash
 export ALBAPAY_URL=$(terraform -chdir=infra/app output -raw url)
-read -rs ALBAPAY_TOKEN && export ALBAPAY_TOKEN
+read -rs ALBAPAY_TOKEN
+export ALBAPAY_TOKEN
 pnpm --filter @albapay/api call GET /api/config
 ```
 
-`200 OK`와 `{ "settings": null, "wages": [], "deductions": [] }`가 나오면 CloudFront, Function URL, Lambda, DynamoDB가 모두 이어진 것이다. 본문이 있는 요청은 이렇게 보낸다.
+`200 OK`와 `{ "settings": null, "wages": [], "deductions": [] }`가 나오면 CloudFront, Function URL, Lambda, DynamoDB가 모두 이어진 것이다. 웹앱은 아직 올리지 않아서 브라우저로 `/`를 열면 403(AccessDenied)이 정상이다. 본문이 있는 요청은 이렇게 보낸다.
 
 ```bash
 pnpm --filter @albapay/api call PUT /api/config/wages/2026-01-01 '{"hourlyWage":10320}'

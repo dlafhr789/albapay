@@ -30,12 +30,14 @@ Node.js 22 이상, pnpm, Docker가 필요하다.
 ```bash
 pnpm install
 pnpm typecheck
-pnpm test                 # 단위 테스트
-docker compose up -d      # DynamoDB Local (localhost:8000)
-pnpm test:int             # 통합 테스트
+pnpm test
+docker compose up -d
+pnpm test:int
 docker compose down
-pnpm --filter @albapay/api build   # Lambda 배포 묶음 (packages/api/dist)
+pnpm --filter @albapay/api build
 ```
+
+`pnpm test`는 DB 없이 도는 단위 테스트, `pnpm test:int`는 DynamoDB Local(`localhost:8000`)에 붙는 통합 테스트다. 마지막 줄은 Lambda 배포 묶음을 `packages/api/dist`에 만든다.
 
 데이터 구조는 [docs/data-model.md](docs/data-model.md), 급여 계산 규칙은 [docs/payroll-rules.md](docs/payroll-rules.md), 배포 방법은 [docs/deploy.md](docs/deploy.md)에 있다.
 

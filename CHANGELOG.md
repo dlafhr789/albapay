@@ -17,11 +17,13 @@
 - CloudFront와 S3 웹 버킷, Lambda Function URL: 웹앱과 API를 한 도메인으로 내보낸다. Function URL은 IAM 인증이라 CloudFront OAC가 서명한 요청만 받고, 직접 부르면 403이다. `/api/*`는 캐시하지 않는다. CSP, HSTS 같은 보안 헤더를 모든 응답에 붙인다 ([ADR 0002](docs/decisions/0002-cloudfront-lambda-function-url-oac.md))
 - Terraform 구성 테스트(`infra/app/tests`): AWS 공급자를 가짜로 바꿔 계정 없이 돌고, Function URL 인증 방식이나 CloudFront 권한 같은 보안 설정이 바뀌면 실패한다
 - API 호출 스크립트(`pnpm --filter @albapay/api call`): 토큰 헤더와 본문 SHA-256 헤더를 붙여서 배포한 API를 터미널에서 부른다
+- Terraform 공급자 잠금 파일(`.terraform.lock.hcl`): 첫 배포 때 만든 공급자 버전과 해시를 고정한다
 
 ### 문서
 
 - 배포 방법 (`docs/deploy.md`)
 - AWS 구성과 요청 흐름 (`docs/architecture.md`)
+- 배포 문서를 실제 첫 배포 절차에 맞게 고침: 배포용 IAM 사용자와 인라인 정책(`infra/deployer-policy.json`), 액세스 키 없이 `aws login`으로 받는 짧은 수명의 자격 증명, `backend.hcl`을 상태 버킷 출력에서 바로 만드는 명령. zsh에 그대로 붙여 넣어도 되게 명령 줄의 주석을 본문으로 옮김
 
 ## 2026-11-02
 
