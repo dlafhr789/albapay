@@ -13,6 +13,7 @@ AWS 계정 하나에 Terraform으로 배포한다. 구성은 둘로 나뉜다.
 
 - Terraform 1.10 이상. S3 백엔드의 `use_lockfile`(DynamoDB 테이블 없이 상태 잠금)이 1.10부터 있다.
 - AWS CLI와, 리소스를 만들 권한이 있는 자격 증명. `aws sts get-caller-identity`가 계정 정보를 보여 주면 된다.
+- 2025년 7월 15일 이후에 만든 계정이 무료 플랜(Free plan)이면 6개월이 지나거나 크레딧을 다 쓰면 계정이 닫힌다. 계속 쓸 앱이라 유료 플랜(Paid plan)으로 바꿔 둔다. 유료 플랜에서도 상시 무료 한도는 그대로 적용된다.
 
 ```bash
 brew install hashicorp/tap/terraform
@@ -47,6 +48,7 @@ pnpm --filter @albapay/api build      # Lambda 묶음. Terraform이 이 결과�
 
 cd infra/app
 cp backend.hcl.example backend.hcl    # bucket에 1단계의 state_bucket을 넣는다
+cp terraform.tfvars.example terraform.tfvars   # 예산 알림을 받을 이메일
 terraform init -backend-config=backend.hcl
 terraform plan -out=app.tfplan       # *.tfplan은 .gitignore에 들어 있다
 terraform apply app.tfplan
@@ -63,6 +65,14 @@ terraform apply app.tfplan
 | EventBridge Scheduler | 매일 04:00 Asia/Seoul | 서울 시간대로 지정해서 UTC 변환을 하지 않는다 |
 
 함수마다 IAM 역할을 따로 두고, 테이블 하나와 자기 로그 그룹에만 권한을 준다.
+
+### 예산 알림
+
+`terraform.tfvars`에 `alert_email`을 넣으면 AWS Budgets 월 예산(기본 5달러)을 만든다. 이번 달 예상 비용이 80%를 넘을 것 같을 때와 실제 비용이 예산을 넘었을 때 메일이 온다.
+
+- 평소 요금이 상시 무료 한도 안이라서, 요금이 나오기 시작하면 설정 실수나 비정상 호출일 가능성이 높다.
+- 비용 할당 태그를 켜지 않아도 되게 계정 전체 비용을 본다. 같은 계정에 다른 서비스가 있으면 `monthly_budget_usd`를 그만큼 올린다.
+- 이메일 주소는 `terraform.tfvars`에만 두고 커밋하지 않는다.
 
 ## 3. 토큰 발급
 
