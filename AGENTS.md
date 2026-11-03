@@ -39,6 +39,7 @@ pnpm typecheck
 pnpm test             # 단위 테스트. DB 없이 돈다
 docker compose up -d  # DynamoDB Local (localhost:8000)
 pnpm test:int         # 통합 테스트. DYNAMODB_ENDPOINT로 다른 엔드포인트를 쓸 수 있다
+pnpm --filter @albapay/api build  # Lambda 배포 묶음. packages/api/dist/<함수>/index.cjs
 ```
 
 Docker 이미지를 받을 수 없는 환경에서는 `pip install "moto[server]"`로 설치한 뒤 `moto_server -p 8000`을 띄우면 통합 테스트를 대신 돌릴 수 있다. moto와 DynamoDB Local은 동작이 조금씩 다를 수 있으니, PR을 병합하기 전에 DynamoDB Local에서도 통합 테스트를 돌린다.

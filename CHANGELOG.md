@@ -4,7 +4,13 @@
 
 ## 진행 중
 
-진행 중인 작업 없음.
+- AWS 배포 (`infra`): Terraform으로 DynamoDB, Lambda, CloudFront, S3, 매일 도는 작업을 만든다
+
+## 2026-11-03
+
+### 추가
+
+- Lambda 배포 묶음 빌드(`pnpm --filter @albapay/api build`): esbuild로 함수마다 CommonJS 파일 하나와 소스 맵을 만든다. AWS SDK도 묶어서 Lambda 런타임의 SDK 버전이 바뀌어도 동작이 그대로다. 테스트가 소스 대신 실제 묶음을 불러서 Function URL 이벤트에 응답하는지 확인한다
 
 ## 2026-11-02
 
