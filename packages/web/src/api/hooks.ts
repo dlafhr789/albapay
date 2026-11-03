@@ -89,3 +89,19 @@ export function useDeleteShift() {
 export function monthOf(date: LocalDate): string {
   return date.slice(0, 7);
 }
+
+export function useLockPayroll() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (period: string) => request<PayrollResponse>('POST', `/api/payroll/${period}/lock`, { body: {} }),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.allPayroll }),
+  });
+}
+
+export function useUnlockPayroll() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (period: string) => request<undefined>('DELETE', `/api/payroll/${period}/lock`),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.allPayroll }),
+  });
+}

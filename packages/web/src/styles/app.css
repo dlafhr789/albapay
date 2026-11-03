@@ -1131,3 +1131,131 @@ select.field-input {
     min-height: 48px;
   }
 }
+
+/* ── 정산 ───────────────────────────────────────────── */
+
+.period-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 4px;
+  border-radius: 14px;
+  background: var(--surface);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.net-card {
+  padding: 20px 18px 18px;
+}
+
+.net-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-3);
+}
+
+.net-card-amount {
+  margin-top: 4px;
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.net-card-amount span {
+  margin-left: 2px;
+  font-size: 21px;
+  font-weight: 600;
+}
+
+.net-card-sub {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.split {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.split-box {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--fill);
+}
+
+.split-box div:first-child {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.split-box div:last-child {
+  margin-top: 2px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.split-box--confirmed {
+  background: var(--primary-soft);
+}
+
+.split-box--confirmed div:first-child {
+  color: var(--primary);
+}
+
+.breakdown {
+  padding: 6px 18px;
+}
+
+.breakdown .row {
+  min-height: 52px;
+}
+
+.row--tall {
+  min-height: 64px;
+}
+
+.row-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.row-strong {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.row-muted {
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+.row-label--end {
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+}
+
+.tag--final {
+  color: var(--primary);
+}
+
+.breakdown-note {
+  margin: 6px 0 14px;
+}
+
+.hint--center {
+  text-align: center;
+}
