@@ -11,6 +11,11 @@
 ### 추가
 
 - Lambda 배포 묶음 빌드(`pnpm --filter @albapay/api build`): esbuild로 함수마다 CommonJS 파일 하나와 소스 맵을 만든다. AWS SDK도 묶어서 Lambda 런타임의 SDK 버전이 바뀌어도 동작이 그대로다. 테스트가 소스 대신 실제 묶음을 불러서 Function URL 이벤트에 응답하는지 확인한다
+- Terraform 상태 버킷(`infra/bootstrap`): 버전 관리, 공개 접근 차단, HTTPS 강제, 삭제 방지. 버킷 이름에 계정 ID 대신 난수를 붙인다
+
+### 문서
+
+- 배포 방법 (`docs/deploy.md`)
 
 ## 2026-11-02
 

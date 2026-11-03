@@ -27,7 +27,8 @@ pnpm 모노레포로 만든다. 아직 없는 폴더는 처음 필요할 때 만
 packages/shared   급여 계산 엔진(DB에 의존하지 않는 순수 함수), zod 스키마
 packages/api      Lambda 핸들러
 packages/web      React + TypeScript + Vite PWA
-infra             Terraform
+infra/bootstrap   Terraform 상태를 담는 S3 버킷
+infra/app         배포 리소스 전체
 docs              공개 문서
 ```
 

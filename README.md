@@ -37,7 +37,7 @@ docker compose down
 pnpm --filter @albapay/api build   # Lambda 배포 묶음 (packages/api/dist)
 ```
 
-데이터 구조는 [docs/data-model.md](docs/data-model.md), 급여 계산 규칙은 [docs/payroll-rules.md](docs/payroll-rules.md)에 있다.
+데이터 구조는 [docs/data-model.md](docs/data-model.md), 급여 계산 규칙은 [docs/payroll-rules.md](docs/payroll-rules.md), 배포 방법은 [docs/deploy.md](docs/deploy.md)에 있다.
 
 ## 라이선스
 
