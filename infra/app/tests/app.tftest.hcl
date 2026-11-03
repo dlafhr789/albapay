@@ -29,6 +29,9 @@ mock_provider "aws" {
   mock_resource "aws_lambda_function_url" {
     defaults = { function_url = "https://abc123.lambda-url.ap-northeast-2.on.aws/" }
   }
+  mock_resource "aws_cloudfront_function" {
+    defaults = { arn = "arn:aws:cloudfront::111111111111:function/albapay-spa-routing" }
+  }
   mock_resource "aws_cloudfront_distribution" {
     defaults = {
       arn         = "arn:aws:cloudfront::111111111111:distribution/EXAMPLE"
@@ -79,6 +82,17 @@ run "app" {
       aws_cloudfront_distribution.main.ordered_cache_behavior[0].cache_policy_id == data.aws_cloudfront_cache_policy.disabled.id
     )
     error_message = "/api/*는 캐시하지 않고 Lambda로 보내야 한다."
+  }
+
+  assert {
+    condition = (
+      anytrue([
+        for association in aws_cloudfront_distribution.main.default_cache_behavior[0].function_association :
+        association.event_type == "viewer-request" && association.function_arn == aws_cloudfront_function.spa_routing.arn
+      ]) &&
+      length(aws_cloudfront_distribution.main.ordered_cache_behavior[0].function_association) == 0
+    )
+    error_message = "웹앱 경로 함수는 S3 동작에만 붙고 /api/*에는 붙지 않아야 한다."
   }
 
   assert {

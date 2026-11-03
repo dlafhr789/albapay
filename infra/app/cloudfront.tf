@@ -115,6 +115,15 @@ resource "aws_cloudfront_response_headers_policy" "security" {
   }
 }
 
+# 웹앱 화면 주소(/payroll 등)를 index.html로 바꾼다. 내용과 이유는 functions/spa-routing.js에 있다.
+resource "aws_cloudfront_function" "spa_routing" {
+  name    = "${var.name}-spa-routing"
+  runtime = "cloudfront-js-2.0"
+  comment = "확장자 없는 웹앱 경로를 index.html로"
+  publish = true
+  code    = file("${path.module}/functions/spa-routing.js")
+}
+
 # ── 배포 ────────────────────────────────────────────────
 
 resource "aws_cloudfront_distribution" "main" {
@@ -153,6 +162,11 @@ resource "aws_cloudfront_distribution" "main" {
     compress                   = true
     cache_policy_id            = data.aws_cloudfront_cache_policy.optimized.id
     response_headers_policy_id = aws_cloudfront_response_headers_policy.security.id
+
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.spa_routing.arn
+    }
   }
 
   # 개인 급여 정보라 캐시하지 않는다. API도 응답에 Cache-Control: no-store를 붙인다.
