@@ -4,7 +4,7 @@
 
 ## 진행 중
 
-진행 중인 작업 없음.
+- 웹앱 (`packages/web`): React PWA 화면과 배포 연결
 
 ## 2026-11-03
 
@@ -18,6 +18,7 @@
 - Terraform 구성 테스트(`infra/app/tests`): AWS 공급자를 가짜로 바꿔 계정 없이 돌고, Function URL 인증 방식이나 CloudFront 권한 같은 보안 설정이 바뀌면 실패한다
 - API 호출 스크립트(`pnpm --filter @albapay/api call`): 토큰 헤더와 본문 SHA-256 헤더를 붙여서 배포한 API를 터미널에서 부른다
 - Terraform 공급자 잠금 파일(`.terraform.lock.hcl`): 첫 배포 때 만든 공급자 버전과 해시를 고정한다
+- 로컬 API 서버(`pnpm --filter @albapay/api dev`): Lambda와 같은 앱을 Node 서버로 띄워 DynamoDB Local에 붙인다. 테이블과 개발용 토큰을 알아서 준비하고, DynamoDB 주소가 로컬이 아니면 실행하지 않는다
 
 ### 문서
 

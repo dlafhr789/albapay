@@ -41,6 +41,7 @@ pnpm typecheck
 pnpm test             # 단위 테스트. DB 없이 돈다
 docker compose up -d  # DynamoDB Local (localhost:8000)
 pnpm test:int         # 통합 테스트. DYNAMODB_ENDPOINT로 다른 엔드포인트를 쓸 수 있다
+pnpm --filter @albapay/api dev    # 로컬 API 서버 (127.0.0.1:8787, DynamoDB Local, 토큰 local-dev-token)
 pnpm --filter @albapay/api build  # Lambda 배포 묶음. packages/api/dist/<함수>/index.cjs
 terraform -chdir=infra/app test   # AWS 없이 Terraform 구성 검사 (먼저 init -backend=false)
 ```

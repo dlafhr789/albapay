@@ -197,6 +197,9 @@ importers:
         specifier: ^4.6.7
         version: 4.6.7
     devDependencies:
+      '@hono/node-server':
+        specifier: ^2.1.6
+        version: 2.1.6(hono@4.13.16)
       '@types/node':
         specifier: ^22.20.5
         version: 22.20.5
@@ -464,6 +467,12 @@ packages:
     engines: {node: '>=16.9.0'}
     peerDependencies:
       hono: '>=4.13.9 || ^5.0.0-0'
+
+  '@hono/node-server@2.1.6':
+    resolution: {integrity: sha512-p/KH9MnfNcsm3sR6x4lNgm5j+QN4Et8srKredl9DZfXiyZ1UQ3aQ2YVpFLbqktYN5JI+DB+VZFKM2PqE5hLKjQ==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      hono: ^4 || ^5.0.0-0
 
   '@jridgewell/resolve-uri@3.1.2':
     resolution: {integrity: sha512-bRISgCIjP20/tbWSPWMEi54QVPRZExkuD9lJL+UIxUKtwVJA8wW1Trb1jMs1RFXo1CBTNZ/5hpC9QvmKWdopKw==}
@@ -1296,6 +1305,10 @@ snapshots:
     optional: true
 
   '@hono/aws-lambda@1.0.1(hono@4.13.16)':
+    dependencies:
+      hono: 4.13.16
+
+  '@hono/node-server@2.1.6(hono@4.13.16)':
     dependencies:
       hono: 4.13.16
 
