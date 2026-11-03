@@ -1,6 +1,8 @@
 import { matchPath, useLocation } from '../lib/router';
 import { Calendar, DayScreen } from '../screens/Calendar';
 import { Payroll } from '../screens/Payroll';
+import { RuleEditorScreen } from '../screens/RuleEditor';
+import { Rules } from '../screens/Rules';
 import { Layout } from './Layout';
 
 function Pending({ title }: { title: string }) {
@@ -37,7 +39,22 @@ export function Routes() {
       </Layout>
     );
   }
-  const title = path.startsWith('/rules') ? '반복 근무' : path.startsWith('/settings') ? '설정' : '없는 화면';
+  if (path === '/rules') {
+    return (
+      <Layout>
+        <Rules />
+      </Layout>
+    );
+  }
+  const rule = matchPath('/rules/:id', path);
+  if (rule?.['id']) {
+    return (
+      <Layout tabs={false}>
+        <RuleEditorScreen id={rule['id'] === 'new' ? null : rule['id']} />
+      </Layout>
+    );
+  }
+  const title = path.startsWith('/settings') ? '설정' : '없는 화면';
   return (
     <Layout>
       <Pending title={title} />

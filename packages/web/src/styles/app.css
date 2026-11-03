@@ -1259,3 +1259,111 @@ select.field-input {
 .hint--center {
   text-align: center;
 }
+
+/* ── 반복 근무 ──────────────────────────────────────── */
+
+.rule-card {
+  display: block;
+  text-decoration: none;
+  color: var(--text);
+}
+
+.rule-card:hover {
+  color: var(--text);
+}
+
+.rule-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--text-3);
+}
+
+.weekdays {
+  display: flex;
+  gap: 4px;
+}
+
+.weekday {
+  width: 28px;
+  height: 28px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--fill);
+  color: var(--text-4);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.weekday--on {
+  background: var(--primary);
+  color: #fff;
+  font-weight: 600;
+}
+
+.rule-card-time {
+  margin-top: 14px;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.rule-card-foot {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--divider);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.note--icon {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  background: var(--surface);
+  color: var(--text-2);
+}
+
+.note--icon svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--text-3);
+}
+
+.day-picker {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.day-picker button {
+  height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.day-picker button[aria-pressed='true'] {
+  background: var(--primary);
+  color: #fff;
+  font-weight: 600;
+}
+
+.footer-bar-inner--stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.footer-bar-inner--stack .hint {
+  text-align: center;
+}

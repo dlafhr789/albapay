@@ -3,7 +3,10 @@ import type {
   ConfigResponse,
   LocalDate,
   PayrollResponse,
+  RuleCreateInput,
+  RuleEndInput,
   RuleRecord,
+  RuleSplitInput,
   ShiftCreateInput,
   ShiftRecord,
   ShiftUpdateInput,
@@ -103,5 +106,41 @@ export function useUnlockPayroll() {
   return useMutation({
     mutationFn: (period: string) => request<undefined>('DELETE', `/api/payroll/${period}/lock`),
     onSuccess: () => client.invalidateQueries({ queryKey: keys.allPayroll }),
+  });
+}
+
+function useInvalidateRules() {
+  const client = useQueryClient();
+  return () =>
+    Promise.all([
+      client.invalidateQueries({ queryKey: keys.rules }),
+      client.invalidateQueries({ queryKey: keys.allShifts }),
+      client.invalidateQueries({ queryKey: keys.allPayroll }),
+    ]);
+}
+
+export function useCreateRule() {
+  const invalidate = useInvalidateRules();
+  return useMutation({
+    mutationFn: (input: RuleCreateInput) => request<RuleRecord>('POST', '/api/rules', { body: input }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useSplitRule() {
+  const invalidate = useInvalidateRules();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: RuleSplitInput }) =>
+      request<{ previous: RuleRecord | null; next: RuleRecord }>('POST', `/api/rules/${encodeURIComponent(id)}/split`, { body: input }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useEndRule() {
+  const invalidate = useInvalidateRules();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: RuleEndInput }) =>
+      request<{ rule: RuleRecord | null }>('POST', `/api/rules/${encodeURIComponent(id)}/end`, { body: input }),
+    onSuccess: invalidate,
   });
 }
