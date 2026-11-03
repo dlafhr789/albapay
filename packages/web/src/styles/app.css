@@ -706,3 +706,428 @@ select.field-input {
   height: 32px;
   border-radius: 10px;
 }
+
+/* ── 달력 ───────────────────────────────────────────── */
+
+.calendar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.calendar-actions .icon-button--solid {
+  margin-left: 4px;
+}
+
+.calendar-layout,
+.calendar-main {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pay-card {
+  display: block;
+  padding: 18px 18px 16px;
+  text-decoration: none;
+  color: var(--text);
+}
+
+.pay-card:hover {
+  color: var(--text);
+}
+
+.pay-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+.pay-card-head span:first-child {
+  font-weight: 500;
+}
+
+.pay-card-amount {
+  margin-top: 4px;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.pay-card-amount span {
+  margin-left: 2px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.meter {
+  margin-top: 14px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--primary-track);
+  overflow: hidden;
+}
+
+.meter-fill {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--primary);
+}
+
+.pay-card-legend {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.pay-card-legend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+}
+
+.dot--confirmed {
+  background: var(--primary);
+}
+
+.dot--expected {
+  background: var(--primary-track);
+}
+
+.pay-card-locked {
+  margin-top: 10px;
+}
+
+.pay-card-more {
+  margin-top: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.pay-card--empty {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 15px;
+}
+
+.pay-card-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.calendar {
+  padding: 12px 6px 8px;
+}
+
+.calendar-weekdays,
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.calendar-weekdays {
+  padding-bottom: 4px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-3);
+}
+
+.calendar-grid {
+  row-gap: 2px;
+}
+
+.cell {
+  height: 60px;
+  padding: 4px 0 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  overflow: hidden;
+}
+
+.cell:hover {
+  background: var(--bg);
+}
+
+.cell-day {
+  height: 28px;
+  min-width: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.cell-day--today {
+  border-radius: 14px;
+  background: var(--text);
+  color: #fff;
+  font-weight: 600;
+}
+
+.cell--muted .cell-day {
+  color: var(--text-4);
+  font-weight: 400;
+}
+
+.chip {
+  min-width: 34px;
+  max-width: calc(100% - 4px);
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chip--worked {
+  background: var(--primary);
+  color: #fff;
+}
+
+.chip--planned {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.chip--extra {
+  padding: 1px 5px;
+  border: 1px dashed var(--text-3);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.chip--absent {
+  background: var(--fill);
+  color: var(--text-3);
+  text-decoration: line-through;
+}
+
+.chip-long {
+  display: none;
+}
+
+.chip-more {
+  font-size: 10px;
+  color: var(--text-3);
+}
+
+.legend {
+  display: flex;
+  gap: 16px;
+  padding: 0 6px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.legend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-swatch {
+  width: 14px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.legend-swatch--worked {
+  background: var(--primary);
+}
+
+.legend-swatch--planned {
+  background: var(--primary-soft);
+  border: 1px solid var(--primary-line);
+}
+
+.legend-swatch--extra {
+  border: 1px dashed var(--text-3);
+}
+
+@media (min-width: 1024px) {
+  .calendar-layout {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 20px;
+  }
+
+  .calendar-main {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .calendar-pay-mobile {
+    display: none;
+  }
+
+  .calendar-side {
+    position: sticky;
+    top: 24px;
+    flex: 0 0 360px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .calendar {
+    padding: 14px 12px 12px;
+  }
+
+  .calendar-grid {
+    row-gap: 4px;
+    column-gap: 4px;
+  }
+
+  .cell {
+    height: 96px;
+    padding: 6px 6px 0;
+    align-items: stretch;
+    border: 1px solid transparent;
+  }
+
+  .cell-day {
+    align-self: flex-start;
+    height: 26px;
+    min-width: 26px;
+    font-size: 13px;
+  }
+
+  .cell--selected {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+  }
+
+  .chip {
+    max-width: none;
+    text-align: left;
+  }
+
+  .chip-short {
+    display: none;
+  }
+
+  .chip-long {
+    display: inline;
+  }
+}
+
+/* ── 하루 근무 ──────────────────────────────────────── */
+
+.day-panel,
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.day-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 4px;
+}
+
+.day-title {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.day-badges {
+  margin-top: 8px;
+  display: flex;
+  gap: 6px;
+}
+
+.day-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.day-tabs button {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--outline);
+  border-radius: 18px;
+  background: var(--surface);
+  font-size: 14px;
+}
+
+.day-tabs button[aria-pressed='true'] {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.day-add {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.footer-summary {
+  flex: 1;
+  min-width: 0;
+}
+
+.footer-amount {
+  margin-top: 2px;
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+@media (min-width: 1024px) {
+  .day-title {
+    font-size: 20px;
+  }
+
+  .calendar-side .section {
+    background: var(--bg);
+  }
+
+  .calendar-side .text-input {
+    background: var(--bg);
+  }
+
+  .calendar-side .segmented {
+    background: var(--segment);
+  }
+
+  .calendar-side .row {
+    min-height: 48px;
+  }
+}

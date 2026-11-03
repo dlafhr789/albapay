@@ -1,4 +1,5 @@
-import { useLocation } from '../lib/router';
+import { matchPath, useLocation } from '../lib/router';
+import { Calendar, DayScreen } from '../screens/Calendar';
 import { Layout } from './Layout';
 
 function Pending({ title }: { title: string }) {
@@ -12,7 +13,23 @@ function Pending({ title }: { title: string }) {
 
 export function Routes() {
   const { path } = useLocation();
-  const title = path.startsWith('/payroll') ? '정산' : path.startsWith('/rules') ? '반복 근무' : path.startsWith('/settings') ? '설정' : '달력';
+
+  const day = matchPath('/day/:date', path);
+  if (day?.['date']) {
+    return (
+      <Layout tabs={false}>
+        <DayScreen date={day['date']} />
+      </Layout>
+    );
+  }
+  if (path === '/') {
+    return (
+      <Layout>
+        <Calendar />
+      </Layout>
+    );
+  }
+  const title = path.startsWith('/payroll') ? '정산' : path.startsWith('/rules') ? '반복 근무' : path.startsWith('/settings') ? '설정' : '없는 화면';
   return (
     <Layout>
       <Pending title={title} />
