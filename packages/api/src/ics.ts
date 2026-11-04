@@ -80,7 +80,7 @@ export interface CalendarFeedOptions {
 
 /**
  * 출발 전 알림. TRIGGER는 시작 시각 기준이라, 이동 시간까지 더한 만큼 앞당긴다.
- * 애플 캘린더가 구독 일정의 이동 시간을 그리지 않더라도 알림은 출발 기준으로 울린다.
+ * 이동 시간 속성을 모르는 캘린더 앱에서도 알림은 출발 기준으로 울린다.
  */
 function alarmLines(shift: ShiftRecord, summary: string, options: CalendarFeedOptions): string[] {
   const minutesBefore = options.travelMin + (options.alertMin ?? 0);
