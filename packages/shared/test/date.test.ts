@@ -4,6 +4,7 @@ import {
   dayOfWeek,
   minutesBetween,
   startOfWeek,
+  nowInSeoul,
   todayInSeoul,
   toDayNumber,
 } from '../src/date';
@@ -41,5 +42,10 @@ describe('date', () => {
     expect(todayInSeoul(new Date('2026-10-31T23:30:00Z'))).toBe('2026-11-01');
     // 서울 시각 2026-11-01 23:59
     expect(todayInSeoul(new Date('2026-11-01T14:59:00Z'))).toBe('2026-11-01');
+  });
+
+  it('gives the current Seoul time to the minute', () => {
+    expect(nowInSeoul(new Date('2026-10-31T23:30:59Z'))).toBe('2026-11-01T08:30');
+    expect(nowInSeoul(new Date('2026-11-01T14:59:00Z'))).toBe('2026-11-01T23:59');
   });
 });

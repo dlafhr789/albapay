@@ -70,6 +70,13 @@ export const settingsSchema = z.object({
   eventTitle: z.string().trim().min(1).max(40),
   /** 캘린더 일정 설명에 예상 급여를 넣을지 */
   showPayInEvent: z.boolean(),
+  /**
+   * 캘린더 일정 앞에 붙일 이동 시간(분). 0이면 붙이지 않는다.
+   * 이 필드가 생기기 전에 저장한 설정은 값이 없어서 기본값으로 읽는다.
+   */
+  eventTravelMin: z.number().int().min(0).max(180).default(0),
+  /** 출발 몇 분 전에 알림을 울릴지. null이면 알림을 넣지 않는다. 출발 시각은 시작 시각에서 이동 시간을 뺀 시각이다. */
+  eventAlertMin: z.number().int().min(0).max(180).nullable().default(null),
 });
 export type AppSettings = z.output<typeof settingsSchema>;
 

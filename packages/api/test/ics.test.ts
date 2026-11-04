@@ -53,7 +53,7 @@ describe('foldLine', () => {
 });
 
 describe('buildCalendarFeed', () => {
-  const options = { title: '알바', showPay: true, wages: WAGES };
+  const options = { title: '알바', showPay: true, wages: WAGES, travelMin: 0, alertMin: null, now: '2026-11-01T09:00' };
 
   it('writes one event per shift in Seoul time with a stable UID', () => {
     const lines = unfold(buildCalendarFeed([shift()], options));
@@ -108,5 +108,42 @@ describe('buildCalendarFeed', () => {
   it('still builds a feed when no wage applies', () => {
     const lines = unfold(buildCalendarFeed([shift()], { ...options, wages: [] }));
     expect(lines.some((line) => line.startsWith('DESCRIPTION'))).toBe(false);
+  });
+
+  it('adds no travel time or alert unless set', () => {
+    const feed = buildCalendarFeed([shift()], options);
+    expect(feed).not.toContain('X-APPLE-TRAVEL-DURATION');
+    expect(feed).not.toContain('BEGIN:VALARM');
+  });
+
+  it('adds Apple travel time before the shift', () => {
+    const lines = unfold(buildCalendarFeed([shift()], { ...options, travelMin: 15 }));
+    expect(lines).toContain('X-APPLE-TRAVEL-DURATION;VALUE=DURATION:PT15M');
+  });
+
+  it('rings the alert the chosen minutes before leaving', () => {
+    const lines = unfold(buildCalendarFeed([shift()], { ...options, travelMin: 15, alertMin: 30 }));
+    const alarm = lines.slice(lines.indexOf('BEGIN:VALARM'), lines.indexOf('END:VALARM') + 1);
+    expect(alarm).toEqual([
+      'BEGIN:VALARM',
+      'UID:r_RULE_20261104-alert@albapay',
+      'ACTION:DISPLAY',
+      'DESCRIPTION:알바',
+      'TRIGGER:-PT45M',
+      'END:VALARM',
+    ]);
+    expect(lines.indexOf('END:VALARM')).toBeLessThan(lines.indexOf('END:VEVENT'));
+  });
+
+  it('can ring the alert at the start time', () => {
+    const lines = unfold(buildCalendarFeed([shift()], { ...options, alertMin: 0 }));
+    expect(lines).toContain('TRIGGER:PT0S');
+  });
+
+  it('leaves the alert out of shifts that have already started', () => {
+    const started = buildCalendarFeed([shift()], { ...options, alertMin: 30, now: '2026-11-04T18:00' });
+    const upcoming = buildCalendarFeed([shift()], { ...options, alertMin: 30, now: '2026-11-04T17:59' });
+    expect(started).not.toContain('BEGIN:VALARM');
+    expect(upcoming).toContain('BEGIN:VALARM');
   });
 });

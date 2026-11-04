@@ -8,7 +8,7 @@ DynamoDB 테이블 하나에 모든 아이템을 담는다. 근무는 월 단위
 
 | 종류 | PK | SK | 속성 |
 | --- | --- | --- | --- |
-| 설정 | `CONFIG` | `SETTINGS` | `hireDate`, `periodStartDay`, `payDay`, `weekStartsOn`, `weeklyHolidayMode`, `eventTitle`, `showPayInEvent` |
+| 설정 | `CONFIG` | `SETTINGS` | `hireDate`, `periodStartDay`, `payDay`, `weekStartsOn`, `weeklyHolidayMode`, `eventTitle`, `showPayInEvent`, `eventTravelMin`, `eventAlertMin` |
 | 시급 이력 | `CONFIG` | `WAGE#<적용 시작일>` | `effectiveFrom`, `hourlyWage` |
 | 공제 이력 | `CONFIG` | `DEDUCT#<적용 시작일>` | `effectiveFrom`, `type`, 항목별 요율 |
 | 토큰 | `CONFIG` | `TOKEN#api`, `TOKEN#cal` | `hash`(SHA-256), `createdAt` |

@@ -67,6 +67,8 @@ describe('payroll', () => {
       weeklyHolidayMode: 'FOUR_WEEK_AVERAGE',
       eventTitle: '알바',
       showPayInEvent: false,
+      eventTravelMin: 0,
+      eventAlertMin: null,
     });
     await call('PUT', '/api/config/wages/2026-01-01', { hourlyWage: 10_320 });
     await call('PUT', '/api/config/deductions/2026-01-01', {

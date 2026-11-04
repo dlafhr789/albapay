@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import {
   addDays,
+  nowInSeoul,
   todayInSeoul,
   type ApiErrorBody,
   type CalendarStatusResponse,
@@ -76,6 +77,9 @@ export function calendarFeedRoutes({ store, now }: AppDeps): Hono {
       title: config.settings?.eventTitle ?? '알바',
       showPay: config.settings?.showPayInEvent ?? false,
       wages: config.wages,
+      travelMin: config.settings?.eventTravelMin ?? 0,
+      alertMin: config.settings?.eventAlertMin ?? null,
+      now: nowInSeoul(now()),
     });
     return c.body(body, 200, { 'Content-Type': 'text/calendar; charset=utf-8' });
   });
