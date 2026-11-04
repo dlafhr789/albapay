@@ -27,8 +27,8 @@ beforeAll(async () => {
   });
   await store.putWage({ effectiveFrom: '2026-01-01', hourlyWage: 10_000 });
   for (const shift of [
-    shiftRecord('2026-09-18', { id: 'too-old' }),
-    shiftRecord('2026-09-19', { id: 'oldest-kept' }),
+    shiftRecord('2026-06-30', { id: 'before-hire' }),
+    shiftRecord('2026-07-01', { id: 'oldest-kept' }),
     shiftRecord('2026-11-20', { id: 'upcoming' }),
     shiftRecord('2026-11-21', { id: 'cancelled', status: 'CANCELLED' }),
     shiftRecord('2027-03-18', { id: 'latest-kept' }),
@@ -83,7 +83,7 @@ describe('calendar subscription', () => {
     });
   });
 
-  it('serves the feed from 60 days ago to 120 days ahead', async () => {
+  it('serves every shift from the hire date to 120 days ahead', async () => {
     const response = await feed(token);
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toBe('text/calendar; charset=utf-8');

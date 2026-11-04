@@ -10,8 +10,11 @@ import type { AppDeps } from '../deps';
 import { generateToken, hashToken, tokenMatches } from '../http/auth';
 import { buildCalendarFeed } from '../ics';
 
-/** 피드에 넣는 기간. 지난 정산을 캘린더에서 돌아볼 만큼과, 반복 규칙이 미리 채우는 90일보다 넉넉하게 잡는다. */
-export const FEED_DAYS_BEFORE = 60;
+/**
+ * 피드는 입사일부터 오늘의 120일 뒤까지 담는다.
+ * 구독 캘린더는 피드에 없는 일정을 지우므로, 지난 근무를 빼면 캘린더에서도 사라진다. 그래서 과거는 자르지 않는다.
+ * 앞쪽은 반복 규칙이 미리 채우는 90일보다 넉넉하게 잡는다.
+ */
 export const FEED_DAYS_AFTER = 120;
 
 /** 구독 주소의 파일 이름. 토큰은 base64url 43자지만, 형식만 확인하고 길이는 넉넉히 받는다. */
@@ -64,11 +67,11 @@ export function calendarFeedRoutes({ store, now }: AppDeps): Hono {
     const storedHash = await store.getTokenHash('cal');
     if (!storedHash || !tokenMatches(token, storedHash)) return notFound();
 
-    const today = todayInSeoul(now());
-    const [config, shifts] = await Promise.all([
-      store.loadConfig(),
-      store.listShiftsBetween(addDays(today, -FEED_DAYS_BEFORE), addDays(today, FEED_DAYS_AFTER)),
-    ]);
+    const config = await store.loadConfig();
+    // 설정이 없으면 입사일을 모른다. 구독 주소는 설정을 저장한 뒤에만 만들 수 있어서 실제로는 거의 없는 경우다.
+    const shifts = config.settings
+      ? await store.listShiftsBetween(config.settings.hireDate, addDays(todayInSeoul(now()), FEED_DAYS_AFTER))
+      : [];
     const body = buildCalendarFeed(shifts, {
       title: config.settings?.eventTitle ?? '알바',
       showPay: config.settings?.showPayInEvent ?? false,
