@@ -1,6 +1,7 @@
 # 웹앱과 API를 도메인 하나로 내보낸다. 같은 출처라서 CORS 설정이 필요 없다.
 #
 #   /api/*  -> Lambda Function URL (AWS_IAM, OAC가 SigV4로 서명)
+#   /cal/*  -> 같은 Lambda Function URL. 캘린더 구독 피드
 #   그 외   -> S3 웹 버킷 (OAC)
 #
 # 구성을 이렇게 정한 이유는 docs/decisions/0002에 있다.
@@ -175,6 +176,20 @@ resource "aws_cloudfront_distribution" "main" {
     target_origin_id           = "api"
     viewer_protocol_policy     = "https-only"
     allowed_methods            = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+    cached_methods             = ["GET", "HEAD"]
+    compress                   = true
+    cache_policy_id            = data.aws_cloudfront_cache_policy.disabled.id
+    origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.all_viewer_except_host.id
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.security.id
+  }
+
+  # 캘린더 앱이 받아 가는 구독 피드. 주소 안의 토큰으로 확인한다(docs/decisions/0004).
+  # 캐시하면 구독을 끊거나 주소를 새로 만든 뒤에도 이전 응답이 나갈 수 있어서 캐시하지 않는다.
+  ordered_cache_behavior {
+    path_pattern               = "/cal/*"
+    target_origin_id           = "api"
+    viewer_protocol_policy     = "https-only"
+    allowed_methods            = ["GET", "HEAD"]
     cached_methods             = ["GET", "HEAD"]
     compress                   = true
     cache_policy_id            = data.aws_cloudfront_cache_policy.disabled.id

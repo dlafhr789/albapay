@@ -86,6 +86,17 @@ run "app" {
 
   assert {
     condition = (
+      aws_cloudfront_distribution.main.ordered_cache_behavior[1].path_pattern == "/cal/*" &&
+      aws_cloudfront_distribution.main.ordered_cache_behavior[1].target_origin_id == "api" &&
+      aws_cloudfront_distribution.main.ordered_cache_behavior[1].cache_policy_id == data.aws_cloudfront_cache_policy.disabled.id &&
+      toset(aws_cloudfront_distribution.main.ordered_cache_behavior[1].allowed_methods) == toset(["GET", "HEAD"]) &&
+      length(aws_cloudfront_distribution.main.ordered_cache_behavior[1].function_association) == 0
+    )
+    error_message = "/cal/*는 읽기만 받고, 캐시하지 않고 Lambda로 보내야 한다."
+  }
+
+  assert {
+    condition = (
       anytrue([
         for association in aws_cloudfront_distribution.main.default_cache_behavior[0].function_association :
         association.event_type == "viewer-request" && association.function_arn == aws_cloudfront_function.spa_routing.arn

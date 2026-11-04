@@ -5,6 +5,7 @@
 ```mermaid
 flowchart LR
   browser["브라우저 (PWA)"]
+  calapp["캘린더 앱<br/>구독"]
 
   subgraph aws["AWS (ap-northeast-2, CloudFront는 전역)"]
     cf["CloudFront<br/>보안 헤더"]
@@ -17,8 +18,9 @@ flowchart LR
   end
 
   browser -- "HTTPS" --> cf
+  calapp -- "HTTPS, 주기적으로" --> cf
   cf -- "그 외 경로, OAC 서명" --> s3
-  cf -- "/api/*, OAC 서명" --> url
+  cf -- "/api/*, /cal/*, OAC 서명" --> url
   url --> api
   api --> ddb
   sched --> mat
@@ -36,14 +38,16 @@ API 요청 하나가 거치는 검사는 순서대로 다음과 같다.
 
 이렇게 정한 이유는 [ADR 0002](decisions/0002-cloudfront-lambda-function-url-oac.md)에 있다.
 
+캘린더 구독 피드(`/cal/<토큰>.ics`)는 1, 2단계가 같고, 3단계에서 헤더 대신 주소 안의 토큰을 확인한다. 캘린더 앱은 요청에 헤더를 붙일 수 없기 때문이다. 이 토큰은 앱 토큰과 따로 만들어서 피드를 읽는 일만 할 수 있고, 틀리면 경로가 없을 때와 똑같이 404다. CloudFront의 `/cal/*` 동작은 GET과 HEAD만 받고 캐시하지 않는다. 이유는 [ADR 0004](decisions/0004-calendar-feed-token-in-url.md)에 있다.
+
 ## 리소스
 
 | 리소스 | 하는 일 | 설정 |
 | --- | --- | --- |
 | CloudFront | 웹앱과 API를 한 도메인으로 내보낸다 | `PriceClass_200`(한국 엣지 포함), HTTP/2·3, 기본 인증서 |
-| CloudFront 함수 | 확장자 없는 웹앱 경로를 `/index.html`로 바꾼다 | S3 쪽 동작에만 붙는다. `/api/*`에는 붙지 않는다 |
+| CloudFront 함수 | 확장자 없는 웹앱 경로를 `/index.html`로 바꾼다 | S3 쪽 동작에만 붙는다. `/api/*`와 `/cal/*`에는 붙지 않는다 |
 | S3 웹 버킷 | 웹앱 정적 파일 | 공개 접근 차단, 이 배포만 읽기 허용 |
-| Lambda `api` | API | Node.js 24, arm64, 512MB |
+| Lambda `api` | API와 캘린더 피드 | Node.js 24, arm64, 512MB |
 | Lambda `materializer` | 반복 규칙의 근무를 90일 앞까지 채운다 | Node.js 24, arm64, 256MB |
 | DynamoDB | 모든 데이터 | 프로비저닝 읽기·쓰기 각 10, 시점 복구, 삭제 방지 |
 | EventBridge Scheduler | materializer를 매일 부른다 | `cron(0 4 * * ? *)`, Asia/Seoul |
@@ -59,7 +63,7 @@ API 요청 하나가 거치는 검사는 순서대로 다음과 같다.
 
 ## 응답 헤더
 
-CloudFront 응답 헤더 정책이 웹앱과 API 응답에 모두 붙인다.
+CloudFront 응답 헤더 정책이 웹앱, API, 캘린더 피드 응답에 모두 붙인다.
 
 | 헤더 | 값 | 이유 |
 | --- | --- | --- |
