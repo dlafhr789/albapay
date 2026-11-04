@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import {
   findEffective,
   RATES_2026,
@@ -13,9 +13,12 @@ import {
 import { UNAUTHORIZED_EVENT } from '../api/client';
 import { clearToken } from '../api/token';
 import {
+  useCalendarStatus,
   useConfig,
   useDeleteDeduction,
+  useDisableCalendar,
   useDeleteWage,
+  useIssueCalendarToken,
   usePutDeduction,
   usePutWage,
   useSaveSettings,
@@ -114,7 +117,7 @@ function SettingsForm({ saved, today }: { saved: AppSettings | null; today: Loca
         </section>
       </SectionGroup>
 
-      <SectionGroup title="애플 캘린더" hint="캘린더 구독 주소는 아직 준비 중이에요. 아래 설정은 구독을 켜면 바로 적용돼요.">
+      <SectionGroup title="애플 캘린더" hint="저장하면 캘린더 앱이 다음에 일정을 받아 갈 때 바뀌어요. 예상 급여는 기본급만 계산해요.">
         <section className="section">
           <label className="row">
             <span>일정 제목</span>
@@ -135,6 +138,139 @@ function SettingsForm({ saved, today }: { saved: AppSettings | null; today: Loca
         </button>
       )}
     </form>
+  );
+}
+
+type CalendarConfirm = 'reissue' | 'disable';
+
+const CONFIRM_TEXT: Record<CalendarConfirm, { message: string; action: string }> = {
+  reissue: {
+    message: '지금 캘린더에 등록한 주소는 바로 끊겨요. 새 주소를 캘린더에 다시 추가해야 해요.',
+    action: '새로 만들기',
+  },
+  disable: {
+    message: '캘린더에는 마지막으로 받아 간 일정이 남을 수 있어요. 아이폰 캘린더 설정에서 구독도 지워 주세요.',
+    action: '구독 끊기',
+  },
+};
+
+/** 구독 주소를 만들고 끊는다. 원본 토큰은 서버에 없어서, 만든 직후 이 화면에서만 주소를 보여 준다. */
+function CalendarSubscription() {
+  const status = useCalendarStatus();
+  const issue = useIssueCalendarToken();
+  const disable = useDisableCalendar();
+  const [feedToken, setFeedToken] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<CalendarConfirm | null>(null);
+  const [copied, setCopied] = useState(false);
+  const urlRef = useRef<HTMLElement>(null);
+
+  const feedUrl = feedToken ? `${window.location.origin}/cal/${feedToken}.ics` : null;
+  const busy = issue.isPending || disable.isPending;
+
+  function create() {
+    setConfirm(null);
+    setCopied(false);
+    issue.mutate(undefined, { onSuccess: (data) => setFeedToken(data.token) });
+  }
+
+  function turnOff() {
+    setConfirm(null);
+    disable.mutate(undefined, { onSuccess: () => setFeedToken(null) });
+  }
+
+  async function copy() {
+    if (!feedUrl) return;
+    try {
+      await navigator.clipboard.writeText(feedUrl);
+      setCopied(true);
+    } catch {
+      // 클립보드를 쓸 수 없으면 주소를 선택해 두어서 직접 복사하게 한다.
+      const node = urlRef.current;
+      if (node) window.getSelection()?.selectAllChildren(node);
+    }
+  }
+
+  const enabled = status.data?.enabled ?? false;
+  const createdAt = status.data?.createdAt;
+
+  return (
+    <SectionGroup
+      title="캘린더 구독"
+      hint={
+        feedUrl
+          ? '이 주소는 지금 한 번만 보여요. 주소를 아는 사람은 누구나 근무 일정을 볼 수 있으니 다른 사람에게 보여 주지 마세요.'
+          : '구독 주소를 아이폰 캘린더에 추가하면, 캘린더 앱이 입사일부터 앞으로 120일까지의 근무를 주기적으로 받아 가요. 지난 근무도 캘린더에 계속 남아요.'
+      }
+    >
+      <section className="section">
+        {status.isPending && (
+          <div className="row">
+            <span className="row-muted">불러오는 중…</span>
+          </div>
+        )}
+        {status.data && (
+          <div className="row">
+            <span className="row-label">
+              <span>구독 주소</span>
+              {enabled && createdAt && <span className="row-sub">{formatFullDate(todayInSeoul(new Date(createdAt)))}에 만듦</span>}
+            </span>
+            <span className={enabled ? 'badge badge--primary' : 'badge'}>{enabled ? '켜짐' : '꺼짐'}</span>
+          </div>
+        )}
+
+        {feedUrl && (
+          <div className="row row--block feed">
+            <code ref={urlRef} className="feed-url">
+              {feedUrl}
+            </code>
+            <div className="feed-actions">
+              <a className="button button--small" href={feedUrl.replace(/^https?:/, 'webcal:')}>
+                캘린더에 추가
+              </a>
+              <button type="button" className="button button--small button--secondary" onClick={copy}>
+                {copied ? '복사했어요' : '주소 복사'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {status.data && !enabled && (
+          <button type="button" className="row row-button row-add" disabled={busy} onClick={create}>
+            {issue.isPending ? '만드는 중…' : '구독 주소 만들기'}
+          </button>
+        )}
+
+        {enabled && confirm === null && (
+          <>
+            <button type="button" className="row row-button" disabled={busy} onClick={() => setConfirm('reissue')}>
+              {issue.isPending ? '만드는 중…' : '주소 새로 만들기'}
+            </button>
+            <button type="button" className="row row-button row-button--danger" disabled={busy} onClick={() => setConfirm('disable')}>
+              {disable.isPending ? '끊는 중…' : '구독 끊기'}
+            </button>
+          </>
+        )}
+
+        {enabled && confirm && (
+          <div className="row row--block feed">
+            <p className="note">{CONFIRM_TEXT[confirm].message}</p>
+            <div className="feed-actions">
+              <button type="button" className="button button--small button--secondary" onClick={() => setConfirm(null)}>
+                취소
+              </button>
+              <button
+                type="button"
+                className={confirm === 'disable' ? 'button button--small button--danger' : 'button button--small'}
+                onClick={confirm === 'disable' ? turnOff : create}
+              >
+                {CONFIRM_TEXT[confirm].action}
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
+      <ErrorAlert error={status.error ?? issue.error ?? disable.error} />
+    </SectionGroup>
   );
 }
 
@@ -421,6 +557,7 @@ export function Settings() {
         <>
           {!config.data.settings && <p className="alert alert--info">처음이라면 근무 설정과 시급을 저장해 주세요. 그래야 급여를 계산할 수 있어요.</p>}
           <SettingsForm key={JSON.stringify(config.data.settings)} saved={config.data.settings} today={today} />
+          {config.data.settings && <CalendarSubscription />}
           <Wages wages={config.data.wages} today={today} />
           <Deductions deductions={config.data.deductions} today={today} />
         </>

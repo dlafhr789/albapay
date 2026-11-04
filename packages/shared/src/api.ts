@@ -248,6 +248,18 @@ export interface PayrollResponse extends PayrollResult {
   lockedAt: string | null;
 }
 
+/** `GET /api/calendar`. 토큰 원본은 서버에 없어서 돌려주지 않는다. */
+export interface CalendarStatusResponse {
+  enabled: boolean;
+  createdAt: string | null;
+}
+
+/** `POST /api/calendar/token`. 원본 토큰은 이 응답에서 한 번만 받는다. */
+export interface CalendarTokenResponse {
+  token: string;
+  createdAt: string;
+}
+
 export type ApiErrorCode =
   | 'VALIDATION'
   | 'UNAUTHORIZED'

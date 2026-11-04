@@ -1588,6 +1588,35 @@ select.field-input {
   display: block;
 }
 
+/* 캘린더 구독 주소. 만든 직후 한 번만 보이고, 길어서 여러 줄로 나눠 보인다. */
+.feed {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 14px 0;
+}
+
+.feed-url {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--fill);
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
+  word-break: break-all;
+  user-select: all;
+  -webkit-user-select: all;
+}
+
+.feed-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 /* ── 화면 전환 ──────────────────────────────────────── */
 
 /*
