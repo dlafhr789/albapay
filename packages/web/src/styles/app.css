@@ -44,7 +44,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: 'IBM Plex Sans KR', system-ui, -apple-system, sans-serif;
+  font-family: 'Pretendard Variable', Pretendard, system-ui, -apple-system, sans-serif;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
@@ -816,7 +816,7 @@ select.field-input {
 
 .pay-card-amount {
   font-size: 30px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.03em;
 }
 
@@ -1321,7 +1321,7 @@ select.field-input {
 .net-card-amount {
   margin-top: 4px;
   font-size: 34px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.03em;
 }
 

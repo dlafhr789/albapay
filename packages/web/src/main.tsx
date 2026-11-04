@@ -1,8 +1,6 @@
 import './zod';
-import '@fontsource/ibm-plex-sans-kr/400.css';
-import '@fontsource/ibm-plex-sans-kr/500.css';
-import '@fontsource/ibm-plex-sans-kr/600.css';
-import '@fontsource/ibm-plex-sans-kr/700.css';
+// Pretendard 가변 글꼴. 글자 범위별로 나뉜 파일 중 화면에 나온 글자의 파일만 받는다. 굵기는 한 파일에 다 들어 있다.
+import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
 import './styles/app.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
