@@ -1,24 +1,37 @@
-import { todayInSeoul, type LocalDate } from '@albapay/shared';
-import { monthOf, useShifts } from '../api/hooks';
-import { chipFor, monthCells, type CalendarCell } from '../lib/calendar';
-import { formatMonthDay, shiftMonth, weekdayName } from '../lib/format';
+import { toClockTime, todayInSeoul, type LocalDate, type WageEntry } from '@albapay/shared';
+import { monthOf, useConfig, useShifts } from '../api/hooks';
+import { chipFor, dayPay, monthCells, type CalendarCell } from '../lib/calendar';
+import { formatMonthDay, formatNumber, shiftMonth, weekdayName } from '../lib/format';
 import { useIsDesktop } from '../lib/media';
 import { navigate, useLocation, withQuery } from '../lib/router';
 import { WEEK_ORDER } from '../lib/rules';
 import { ErrorAlert } from '../ui/controls';
 import { ChevronLeft, ChevronRight, PlusIcon } from '../ui/icons';
-import { toClockTime } from '@albapay/shared';
 import { DayPanel } from './DayPanel';
 import { PayrollCard } from './PayrollCard';
 
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 const MAX_CHIPS = 2;
 
-function Cell({ cell, today, selected, onOpen }: { cell: CalendarCell; today: LocalDate; selected: boolean; onOpen: () => void }) {
-  const chips = cell.shifts
-    .map((shift) => ({ shift, chip: chipFor(shift, today) }))
-    .filter((entry): entry is { shift: (typeof entry)['shift']; chip: NonNullable<(typeof entry)['chip']> } => entry.chip !== null);
-  const label = `${formatMonthDay(cell.date)}${chips.length ? `, 근무 ${chips.length}개` : ''}`;
+function Cell({
+  cell,
+  today,
+  wages,
+  selected,
+  onOpen,
+}: {
+  cell: CalendarCell;
+  today: LocalDate;
+  wages: readonly WageEntry[];
+  selected: boolean;
+  onOpen: () => void;
+}) {
+  const chips = cell.shifts.flatMap((shift) => {
+    const chip = chipFor(shift, today);
+    return chip ? [{ shift, chip }] : [];
+  });
+  const pay = chips.length ? dayPay(chips.map(({ shift }) => shift), wages) : null;
+  const label = `${formatMonthDay(cell.date)}${chips.length ? `, 근무 ${chips.length}개` : ''}${pay ? `, ${formatNumber(pay)}원` : ''}`;
 
   return (
     <button
@@ -28,16 +41,22 @@ function Cell({ cell, today, selected, onOpen }: { cell: CalendarCell; today: Lo
       aria-current={cell.today ? 'date' : undefined}
       onClick={onOpen}
     >
-      <span className={`cell-day${cell.today ? ' cell-day--today' : ''}`}>{cell.day}</span>
-      {chips.slice(0, MAX_CHIPS).map(({ shift, chip }) => (
-        <span key={shift.id} className={`chip chip--${chip.kind}`}>
-          <span className="chip-short">{chip.label}</span>
-          <span className="chip-long">
-            {chip.kind === 'absent' ? '결근' : `${toClockTime(shift.actualStart ?? shift.plannedStart)}–${toClockTime(shift.actualEnd ?? shift.plannedEnd)}`}
+      {/* 버튼은 넘치는 내용을 세로 가운데로 맞춰서, 안쪽 상자로 위에서부터 쌓는다. */}
+      <span className="cell-inner">
+        <span className={`cell-day${cell.today ? ' cell-day--today' : ''}`}>{cell.day}</span>
+        {chips.slice(0, MAX_CHIPS).map(({ shift, chip }) => (
+          <span key={shift.id} className={`chip chip--${chip.kind}`}>
+            <span className="chip-short">{chip.label}</span>
+            <span className="chip-long">
+              {chip.kind === 'absent'
+                ? '결근'
+                : `${toClockTime(shift.actualStart ?? shift.plannedStart)}–${toClockTime(shift.actualEnd ?? shift.plannedEnd)}`}
+            </span>
           </span>
-        </span>
-      ))}
-      {chips.length > MAX_CHIPS && <span className="chip-more">+{chips.length - MAX_CHIPS}</span>}
+        ))}
+        {chips.length > MAX_CHIPS && <span className="chip-more">+{chips.length - MAX_CHIPS}</span>}
+        {pay !== null && pay > 0 && <span className="cell-pay">{formatNumber(pay)}</span>}
+      </span>
     </button>
   );
 }
@@ -50,28 +69,34 @@ export function Calendar() {
   const selectedDate = query.get('date');
   const month = requested && MONTH_PATTERN.test(requested) ? requested : (selectedDate?.slice(0, 7) ?? monthOf(today));
   const shifts = useShifts(month);
+  const config = useConfig();
   const cells = monthCells(month, shifts.data ?? [], today);
+  const wages = config.data?.wages ?? [];
 
   function open(date: LocalDate, shift?: string) {
     if (isDesktop) navigate(withQuery('/', { month, date, shift }), { replace: true });
     else navigate(withQuery(`/day/${date}`, { shift }));
   }
 
+  function goToMonth(next: string, transition: 'forward' | 'back' | 'fade') {
+    navigate(withQuery('/', { month: next }), { transition });
+  }
+
   return (
-    <div className="page page--wide calendar-page">
+    <div className="page page--wide page--calendar">
       <div className="page-header">
         <h1 className="page-title">
           {Number(month.slice(5, 7))}월<small>{month.slice(0, 4)}</small>
         </h1>
         <div className="calendar-actions">
-          <button type="button" className="icon-button" aria-label="이전 달" onClick={() => navigate(withQuery('/', { month: shiftMonth(month, -1) }))}>
+          <button type="button" className="icon-button" aria-label="이전 달" onClick={() => goToMonth(shiftMonth(month, -1), 'back')}>
             <ChevronLeft />
           </button>
-          <button type="button" className="icon-button" aria-label="다음 달" onClick={() => navigate(withQuery('/', { month: shiftMonth(month, 1) }))}>
+          <button type="button" className="icon-button" aria-label="다음 달" onClick={() => goToMonth(shiftMonth(month, 1), 'forward')}>
             <ChevronRight />
           </button>
           {month !== monthOf(today) && (
-            <button type="button" className="button button--secondary button--small" onClick={() => navigate('/')}>
+            <button type="button" className="button button--secondary button--small" onClick={() => goToMonth(monthOf(today), 'fade')}>
               오늘
             </button>
           )}
@@ -94,7 +119,14 @@ export function Calendar() {
             </div>
             <div className="calendar-grid">
               {cells.map((cell) => (
-                <Cell key={cell.date} cell={cell} today={today} selected={isDesktop && cell.date === selectedDate} onOpen={() => open(cell.date)} />
+                <Cell
+                  key={cell.date}
+                  cell={cell}
+                  today={today}
+                  wages={wages}
+                  selected={isDesktop && cell.date === selectedDate}
+                  onOpen={() => open(cell.date)}
+                />
               ))}
             </div>
           </section>

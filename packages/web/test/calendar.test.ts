@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PayrollResult, ShiftRecord } from '@albapay/shared';
-import { chipFor, monthCells } from '../src/lib/calendar';
+import { chipFor, dayPay, monthCells } from '../src/lib/calendar';
 import { splitGross } from '../src/lib/payroll';
 
 function shift(workDate: string, overrides: Partial<ShiftRecord> = {}): ShiftRecord {
@@ -60,6 +60,19 @@ describe('chipFor', () => {
   it('marks absences and hides cancelled shifts', () => {
     expect(chipFor(shift('2026-11-04', { status: 'ABSENT' }), '2026-11-03')).toEqual({ kind: 'absent', label: '결근' });
     expect(chipFor(shift('2026-11-04', { status: 'CANCELLED' }), '2026-11-03')).toBeNull();
+  });
+});
+
+describe('dayPay', () => {
+  const wages = [{ effectiveFrom: '2026-01-01', hourlyWage: 10_320 }];
+
+  it('adds up the pay of every shift on the day', () => {
+    const extra = shift('2026-11-05', { id: 'x', plannedStart: '2026-11-05T12:00', plannedEnd: '2026-11-05T13:30' });
+    expect(dayPay([shift('2026-11-05'), extra], wages)).toBe(51_600 + 15_480);
+  });
+
+  it('returns null when no wage applies', () => {
+    expect(dayPay([shift('2025-12-31')], wages)).toBeNull();
   });
 });
 

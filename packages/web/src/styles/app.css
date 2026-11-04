@@ -857,15 +857,21 @@ select.field-input {
 }
 
 .cell {
-  height: 60px;
-  padding: 4px 0 0;
+  min-height: 64px;
+  padding: 0;
   border: 0;
   border-radius: 10px;
   background: transparent;
+  overflow: hidden;
+}
+
+.cell-inner {
+  height: 100%;
+  padding: 3px 2px 4px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 3px;
+  align-items: stretch;
+  gap: 2px;
   overflow: hidden;
 }
 
@@ -874,8 +880,10 @@ select.field-input {
 }
 
 .cell-day {
-  height: 28px;
-  min-width: 28px;
+  flex-shrink: 0;
+  align-self: center;
+  height: 22px;
+  min-width: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -884,7 +892,7 @@ select.field-input {
 }
 
 .cell-day--today {
-  border-radius: 14px;
+  border-radius: 11px;
   background: var(--text);
   color: #fff;
   font-weight: 600;
@@ -896,9 +904,9 @@ select.field-input {
 }
 
 .chip {
-  min-width: 34px;
-  max-width: calc(100% - 4px);
-  padding: 2px 6px;
+  flex-shrink: 0;
+  padding: 1px 4px;
+  line-height: 15px;
   border-radius: 6px;
   font-size: 11px;
   font-weight: 600;
@@ -919,7 +927,7 @@ select.field-input {
 }
 
 .chip--extra {
-  padding: 1px 5px;
+  padding: 0 3px;
   border: 1px dashed var(--text-3);
   background: var(--surface);
   color: var(--text);
@@ -936,8 +944,61 @@ select.field-input {
 }
 
 .chip-more {
+  text-align: center;
   font-size: 10px;
   color: var(--text-3);
+}
+
+.cell-pay {
+  flex-shrink: 0;
+  margin-top: auto;
+  text-align: center;
+  font-size: 10px;
+  line-height: 12px;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/*
+ * 휴대폰에서는 달력 화면이 한 화면에 꼭 맞고 스크롤되지 않는다.
+ * 남는 세로 공간을 모두 달력 칸에 나눠 줘서, 근무가 두 개인 날도 시간과 금액이 들어간다.
+ */
+@media (max-width: 1023px) and (min-height: 700px) {
+  .page--calendar {
+    height: 100dvh;
+    padding-bottom: calc(var(--tabbar-height) + var(--safe-bottom) + 12px);
+    overflow: hidden;
+  }
+
+  .page--calendar .calendar-layout,
+  .page--calendar .calendar-main {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .page--calendar .calendar {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .page--calendar .calendar-grid {
+    flex: 1;
+    min-height: 0;
+    grid-auto-rows: minmax(0, 1fr);
+  }
+
+  .page--calendar .cell {
+    min-height: 0;
+  }
+
+  /* 칸 높이가 모자라서 범례는 숨긴다. 칸 색의 뜻은 달력 칸을 눌렀을 때 상태 이름으로도 보인다. */
+  .page--calendar .legend {
+    display: none;
+  }
 }
 
 .legend {
@@ -1008,10 +1069,17 @@ select.field-input {
   }
 
   .cell {
-    height: 96px;
-    padding: 6px 6px 0;
-    align-items: stretch;
+    height: 104px;
     border: 1px solid transparent;
+  }
+
+  .cell-inner {
+    padding: 6px;
+  }
+
+  .cell-pay {
+    text-align: right;
+    font-size: 11px;
   }
 
   .cell-day {
@@ -1027,7 +1095,7 @@ select.field-input {
   }
 
   .chip {
-    max-width: none;
+    padding: 2px 6px;
     text-align: left;
   }
 

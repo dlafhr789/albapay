@@ -1,4 +1,4 @@
-import { addDays, paidMinutes, startOfWeek, type LocalDate, type ShiftRecord } from '@albapay/shared';
+import { addDays, paidMinutes, startOfWeek, wageOn, type LocalDate, type ShiftRecord, type WageEntry } from '@albapay/shared';
 import { formatMinutesShort } from './format';
 
 export interface CalendarCell {
@@ -53,4 +53,13 @@ export function chipFor(shift: ShiftRecord, today: LocalDate): { kind: ChipKind;
   const done = shift.status === 'WORKED' || shift.workDate < today;
   if (done) return { kind: 'worked', label };
   return { kind: shift.kind === 'EXTRA' ? 'extra' : 'planned', label };
+}
+
+/** 그날 근무들의 급여 합. 시급 이력이 없어 계산할 수 없으면 null */
+export function dayPay(shifts: readonly ShiftRecord[], wages: readonly WageEntry[]): number | null {
+  try {
+    return shifts.reduce((sum, shift) => sum + Math.floor((paidMinutes(shift) * wageOn(wages, shift.workDate)) / 60), 0);
+  } catch {
+    return null;
+  }
 }
