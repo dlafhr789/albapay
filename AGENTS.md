@@ -41,7 +41,10 @@ pnpm typecheck
 pnpm test             # 단위 테스트. DB 없이 돈다
 docker compose up -d  # DynamoDB Local (localhost:8000)
 pnpm test:int         # 통합 테스트. DYNAMODB_ENDPOINT로 다른 엔드포인트를 쓸 수 있다
+pnpm --filter @albapay/api dev    # 로컬 API 서버 (127.0.0.1:8787, DynamoDB Local, 토큰 local-dev-token)
+pnpm --filter @albapay/web dev    # 웹앱 개발 서버 (localhost:5173, /api는 위 서버로)
 pnpm --filter @albapay/api build  # Lambda 배포 묶음. packages/api/dist/<함수>/index.cjs
+pnpm --filter @albapay/web upload # 웹앱 빌드 후 S3에 올리고 CloudFront 캐시 비우기 (AWS_PROFILE 필요)
 terraform -chdir=infra/app test   # AWS 없이 Terraform 구성 검사 (먼저 init -backend=false)
 ```
 
@@ -78,6 +81,8 @@ Docker 이미지를 받을 수 없는 환경에서는 `pip install "moto[server]
   - 본문이 있는 POST·PUT 요청은 클라이언트가 본문의 SHA-256을 `x-amz-content-sha256` 헤더에 넣는다. PATCH는 쓰지 않는다.
 - 토큰은 서버에 SHA-256 해시로만 저장한다. 원본 토큰과 캘린더 구독 URL은 로그에 남기지 않는다.
 - 외부 스크립트(광고, 분석 도구)를 넣지 않는다. CSP는 `default-src 'self'`가 기준이다.
+  - 웹앱에 인라인 스크립트, 인라인 `<style>`, 외부 폰트를 넣지 않는다. 폰트는 `@fontsource`로 직접 내보낸다.
+  - 웹앱은 시작할 때 zod를 `jitless`로 둔다(`packages/web/src/zod.ts`). zod가 `new Function`이 되는지 시험하면 CSP가 위반으로 기록한다.
 - Lambda는 CloudFront 배포 하나에만 `lambda:InvokeFunctionUrl`과 `lambda:InvokeFunction` 두 권한을 준다. 둘 중 하나라도 빠지면 CloudFront를 거친 요청도 403이다.
 - 배포는 루트가 아니라 배포용 IAM 사용자(`PowerUserAccess` + `infra/deployer-policy.json`)가 `aws login`의 짧은 수명 자격 증명으로 한다. 새 IAM 역할은 이름을 `albapay-`로 시작해야 이 사용자가 만들 수 있다.
 - 버킷 이름은 계정 ID 대신 `bucket_prefix`의 난수 접미사로 정한다. 상태 버킷 이름은 커밋하지 않는 `infra/app/backend.hcl`로 넘긴다.

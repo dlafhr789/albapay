@@ -110,6 +110,7 @@ terraform apply app.tfplan
 | 로그 그룹 | 30일 보관 | 함수가 처음 로그를 쓸 때 자동으로 생기는 로그 그룹은 보관 기간이 무제한이다 |
 | EventBridge Scheduler | 매일 04:00 Asia/Seoul | 서울 시간대로 지정해서 UTC 변환을 하지 않는다 |
 | CloudFront | `/api/*`는 Lambda, 그 외는 S3 | 웹앱과 API를 한 도메인으로 내보낸다. 처음 만들거나 바꾸면 전 세계 엣지에 퍼지는 데 몇 분 걸린다 |
+| CloudFront 함수 | S3 쪽 요청에서 확장자 없는 경로를 `/index.html`로 | 화면 주소(`/payroll`)에서 새로 고쳐도 같은 화면이 열린다 |
 | S3 웹 버킷 | 공개 접근 차단 | 이 CloudFront 배포만 읽을 수 있다 |
 
 함수마다 IAM 역할을 따로 두고, 테이블 하나와 자기 로그 그룹에만 권한을 준다.
@@ -156,6 +157,27 @@ CloudFront를 거치지 않으면 막히는지도 확인한다. Function URL로 
 curl -s -o /dev/null -w '%{http_code}\n' \
   "$(aws lambda get-function-url-config --function-name albapay-api --query FunctionUrl --output text)api/config"
 ```
+
+## 5. 웹앱 올리기
+
+웹앱을 빌드해서 S3 웹 버킷에 올리고 CloudFront 캐시를 비운다. 버킷 이름과 배포 ID는 Terraform 출력에서 읽는다. 저장소 루트에서 실행한다.
+
+```bash
+pnpm --filter @albapay/web upload
+```
+
+스크립트(`packages/web/scripts/upload.sh`)는 이 순서로 올린다.
+
+1. 이름에 해시가 붙은 파일(`assets/`)을 `max-age=31536000, immutable`로 올린다. 내용이 바뀌면 이름도 바뀌어서 오래 캐시해도 된다.
+2. 이름이 고정된 파일(`index.html`, `sw.js`, 매니페스트, 아이콘)을 `no-cache`로 올린다. 브라우저가 매번 새 버전이 있는지 확인한다.
+3. 더는 쓰지 않는 해시 파일을 지운다. 새 `index.html`이 올라간 뒤에 지워야 그사이 연 화면이 깨지지 않는다.
+4. CloudFront 캐시를 `/*` 하나로 비운다. 경로 하나로 세어서 월 무료 횟수(1,000개) 안이다.
+
+### 아이폰에 설치
+
+1. 사파리에서 `terraform -chdir=infra/app output -raw url` 주소를 연다.
+2. 공유 버튼 → **홈 화면에 추가**를 누른다.
+3. 홈 화면의 알바페이를 열고 3단계에서 발급한 토큰을 넣는다. 사파리와 홈 화면 앱은 저장소가 따로라서, 사파리에서 넣은 토큰은 앱에서 보이지 않는다.
 
 ## 구성 검사
 

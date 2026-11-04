@@ -41,12 +41,21 @@ API 요청 하나가 거치는 검사는 순서대로 다음과 같다.
 | 리소스 | 하는 일 | 설정 |
 | --- | --- | --- |
 | CloudFront | 웹앱과 API를 한 도메인으로 내보낸다 | `PriceClass_200`(한국 엣지 포함), HTTP/2·3, 기본 인증서 |
+| CloudFront 함수 | 확장자 없는 웹앱 경로를 `/index.html`로 바꾼다 | S3 쪽 동작에만 붙는다. `/api/*`에는 붙지 않는다 |
 | S3 웹 버킷 | 웹앱 정적 파일 | 공개 접근 차단, 이 배포만 읽기 허용 |
 | Lambda `api` | API | Node.js 24, arm64, 512MB |
 | Lambda `materializer` | 반복 규칙의 근무를 90일 앞까지 채운다 | Node.js 24, arm64, 256MB |
 | DynamoDB | 모든 데이터 | 프로비저닝 읽기·쓰기 각 10, 시점 복구, 삭제 방지 |
 | EventBridge Scheduler | materializer를 매일 부른다 | `cron(0 4 * * ? *)`, Asia/Seoul |
 | CloudWatch Logs | Lambda 로그 | JSON 형식, 30일 보관 |
+
+## 웹앱 경로와 캐시
+
+웹앱은 History API로 화면을 바꿔서, 주소가 `/payroll`처럼 파일이 아닌 경로가 된다. S3에는 그런 파일이 없으므로 CloudFront 함수가 요청이 S3에 닿기 전에 경로를 `/index.html`로 바꾼다.
+
+- S3 403을 `index.html`로 바꾸는 사용자 지정 오류 응답은 쓰지 않는다. 배포 전체에 걸려서 API의 403·404 응답까지 웹앱 HTML로 바뀐다.
+- 파일 이름에 해시가 붙은 `assets/`는 1년 동안 캐시하고, `index.html`과 서비스 워커처럼 이름이 고정된 파일은 `no-cache`로 올린다. 올리는 방법은 [배포 문서](deploy.md#5-웹앱-올리기)에 있다.
+- 서비스 워커는 앱 화면만 미리 받아 두고 `/api/*` 요청은 가로채지 않는다([ADR 0003](decisions/0003-pwa-and-ics-instead-of-native-app.md)).
 
 ## 응답 헤더
 

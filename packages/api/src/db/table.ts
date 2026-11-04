@@ -1,4 +1,10 @@
-import type { CreateTableCommandInput } from '@aws-sdk/client-dynamodb';
+import {
+  CreateTableCommand,
+  DescribeTableCommand,
+  type CreateTableCommandInput,
+  type DynamoDBClient,
+} from '@aws-sdk/client-dynamodb';
+import { isAwsError } from './errors';
 
 /**
  * 로컬 개발과 통합 테스트에서 만드는 테이블. 키 구조는 배포용 Terraform 정의와 같아야 한다.
@@ -17,4 +23,16 @@ export function tableDefinition(tableName: string): CreateTableCommandInput {
     ],
     BillingMode: 'PAY_PER_REQUEST',
   };
+}
+
+/** 테이블이 없으면 만든다. 새로 만들었으면 true */
+export async function ensureTable(client: DynamoDBClient, tableName: string): Promise<boolean> {
+  try {
+    await client.send(new DescribeTableCommand({ TableName: tableName }));
+    return false;
+  } catch (error) {
+    if (!isAwsError(error, 'ResourceNotFoundException')) throw error;
+    await client.send(new CreateTableCommand(tableDefinition(tableName)));
+    return true;
+  }
 }
