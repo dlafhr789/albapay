@@ -1,10 +1,10 @@
 # API
 
-모든 요청은 CloudFront 도메인의 `/api/*`로 보내고 JSON으로 주고받는다. 요청·응답 스키마는 [`packages/shared/src/api.ts`](../packages/shared/src/api.ts)에 있고 웹과 Lambda가 같은 정의를 쓴다. 응답에는 `Cache-Control: no-store`가 붙는다.
+앱의 요청은 CloudFront 도메인의 `/api/*`로 보내고 JSON으로 주고받는다. 캘린더 앱이 받아 가는 피드만 `/cal/*`에 따로 있다([캘린더 구독](#캘린더-구독)). 요청·응답 스키마는 [`packages/shared/src/api.ts`](../packages/shared/src/api.ts)에 있고 웹과 Lambda가 같은 정의를 쓴다. 응답에는 `Cache-Control: no-store`가 붙는다.
 
 ## 인증
 
-모든 요청에 `X-App-Token` 헤더로 토큰을 보낸다.
+`/api/*`의 모든 요청에 `X-App-Token` 헤더로 토큰을 보낸다.
 
 - `Authorization` 헤더는 쓰지 않는다. CloudFront OAC가 Lambda Function URL로 보내는 요청에 자기 서명을 이 헤더로 넣기 때문이다.
 - 서버는 토큰의 SHA-256 해시만 저장하고, 받은 토큰의 해시와 상수 시간으로 비교한다.
@@ -315,3 +315,46 @@ POST /api/rules/{id}/end
 ```
 
 계산 규칙은 [payroll-rules.md](payroll-rules.md)에 있다.
+
+## 캘린더 구독
+
+근무 일정을 iCalendar(RFC 5545) 피드로 내보낸다. 아이폰 캘린더에 구독 주소를 한 번 등록하면 캘린더 앱이 주기적으로 다시 받아 간다.
+
+| 메서드 | 경로 | 하는 일 | 응답 |
+| --- | --- | --- | --- |
+| GET | `/api/calendar` | 구독 주소가 있는지와 만든 시각 | 200 `{ "enabled": true, "createdAt": "..." }` |
+| POST | `/api/calendar/token` | 구독용 토큰을 새로 만든다. 이전 주소는 바로 끊긴다 | 201 `{ "token": "...", "createdAt": "..." }` |
+| DELETE | `/api/calendar/token` | 구독을 끊는다 | 204 |
+| GET | `/cal/{토큰}.ics` | 피드. 앱 토큰 없이 주소 안의 토큰으로 확인한다 | 200 `text/calendar`, 틀리면 404 |
+
+### 구독 주소
+
+캘린더 앱은 요청에 헤더를 붙일 수 없어서 토큰을 주소에 넣는다. 그래서 이 토큰은 앱 토큰과 따로 만들고, 할 수 있는 일은 피드를 읽는 것 하나뿐이다. 이렇게 정한 이유는 [ADR 0004](decisions/0004-calendar-feed-token-in-url.md)에 있다.
+
+- 구독 주소는 `https://<CloudFront 도메인>/cal/<토큰>.ics`다. 토큰은 32바이트 난수를 base64url로 쓴 43자다.
+- 서버는 토큰의 SHA-256 해시만 저장한다. 원본 토큰은 만들 때 응답으로 한 번만 돌려주므로, 잃어버리면 새로 만든다.
+- POST는 본문이 필요 없지만, 다른 POST와 같이 `{}`와 그 SHA-256을 보낸다.
+- 토큰이 틀린 경우와 주소 형식이 틀린 경우는 똑같이 404다. 응답으로 어느 쪽인지 알 수 없다.
+- Lambda 오류 로그에는 피드 경로를 `/cal/<redacted>`로 바꿔 적는다.
+
+### 피드 내용
+
+- 서울 기준 오늘의 60일 전부터 120일 뒤까지의 근무를 담는다. 반복 규칙은 90일 앞까지 근무를 채워 두므로 그 범위가 모두 들어간다.
+- 근무 하나가 일정 하나다. UID는 `<근무 ID>@albapay`, SEQUENCE는 근무의 `version`이라, 시각을 고치면 캘린더의 같은 일정이 바뀐다.
+- 시각은 `TZID=Asia/Seoul`로 적는다. 실제 시각을 적은 근무는 실제 시각으로, 아니면 예정 시각으로 보인다.
+- 제목은 설정의 `eventTitle`이고, 대타는 뒤에 `(대타)`가 붙는다. `showPayInEvent`가 켜져 있으면 설명에 근무 시간과 예상 급여(기본급만)를 넣는다. 메모도 설명에 들어간다.
+- 빠진 날(`CANCELLED`)과 결근(`ABSENT`)은 넣지 않는다. 구독 캘린더는 피드에서 사라진 일정을 지운다.
+- 응답에는 `Cache-Control: no-store`가 붙는다. 다시 받아 가는 간격은 피드의 `REFRESH-INTERVAL`(1시간)이 힌트이고, 실제로는 캘린더 앱 설정이 정한다.
+
+```
+BEGIN:VEVENT
+UID:r_01JC7Y8Z_20261104@albapay
+DTSTAMP:20261102T030405Z
+LAST-MODIFIED:20261102T030405Z
+SEQUENCE:2
+DTSTART;TZID=Asia/Seoul:20261104T180000
+DTEND;TZID=Asia/Seoul:20261104T230000
+SUMMARY:알바
+DESCRIPTION:5시간 · 예상 급여 50\,000원
+END:VEVENT
+```

@@ -5,6 +5,7 @@ import { StoreError } from './db/errors';
 import type { AppDeps } from './deps';
 import { requireApiToken } from './http/auth';
 import { ApiError } from './http/errors';
+import { calendarFeedRoutes, calendarRoutes } from './routes/calendar';
 import { configRoutes } from './routes/config';
 import { payrollRoutes } from './routes/payroll';
 import { ruleRoutes } from './routes/rules';
@@ -45,6 +46,10 @@ export function createApp(
   app.route('/api', shiftRoutes(resolved));
   app.route('/api', ruleRoutes(resolved));
   app.route('/api', payrollRoutes(resolved));
+  app.route('/api', calendarRoutes(resolved));
+
+  // 캘린더 피드는 앱 토큰 헤더 대신 주소 안의 토큰으로 확인한다. `/api/*` 미들웨어 밖에 둔다.
+  app.route('/cal', calendarFeedRoutes(resolved));
 
   app.notFound((c) =>
     c.json<ApiErrorBody>({ error: { code: 'NOT_FOUND', message: '없는 경로입니다.' } }, 404),
@@ -53,7 +58,9 @@ export function createApp(
   app.onError((error, c) => {
     const apiError = toApiError(error);
     if (apiError) return c.json(apiError.toBody(), apiError.status);
-    console.error('Unhandled error', { method: c.req.method, path: c.req.path, error });
+    // 피드 주소에는 토큰이 들어 있어서 로그에 남기지 않는다.
+    const path = c.req.path.startsWith('/cal/') ? '/cal/<redacted>' : c.req.path;
+    console.error('Unhandled error', { method: c.req.method, path, error });
     return c.json<ApiErrorBody>({ error: { code: 'INTERNAL', message: '서버 오류가 발생했습니다.' } }, 500);
   });
 

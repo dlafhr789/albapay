@@ -161,8 +161,20 @@ export class Store {
     return typeof hash === 'string' ? hash : null;
   }
 
+  /** 토큰을 언제 만들었는지까지 읽는다. 해시는 돌려주지 않는다. */
+  async getTokenInfo(kind: TokenKind): Promise<{ createdAt: string } | null> {
+    const item = await this.get(keys.token(kind));
+    const createdAt = item?.['createdAt'];
+    return typeof createdAt === 'string' ? { createdAt } : null;
+  }
+
   async putTokenHash(kind: TokenKind, hash: string, createdAt: string): Promise<void> {
     await this.put({ ...keys.token(kind), entity: 'TOKEN', hash, createdAt });
+  }
+
+  /** 토큰을 지운다. 지울 토큰이 없었으면 false */
+  async deleteToken(kind: TokenKind): Promise<boolean> {
+    return this.delete(keys.token(kind));
   }
 
   // ── 설정 ──────────────────────────────────────────────
