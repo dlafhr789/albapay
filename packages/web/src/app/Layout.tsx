@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { Link, useLocation } from '../lib/router';
 import { CalendarIcon, ReceiptIcon, RepeatIcon, SlidersIcon, WalletIcon } from '../ui/icons';
 
@@ -19,6 +19,15 @@ function isActive(path: string, match: readonly string[]): boolean {
  */
 export function Layout({ children, tabs = true, summary }: { children: ReactNode; tabs?: boolean; summary?: ReactNode }) {
   const { path } = useLocation();
+  const activeIndex = TABS.findIndex(({ match }) => isActive(path, match));
+  // 고른 탭을 표시하는 상자 하나가 탭 사이를 미끄러져 움직인다. 위치는 CSS 변수로 넘긴다(CSSOM으로 넣어서 CSP에 걸리지 않는다).
+  const indicator = (
+    <span
+      className={`nav-indicator${activeIndex < 0 ? ' nav-indicator--hidden' : ''}`}
+      style={{ '--nav-index': Math.max(activeIndex, 0) } as CSSProperties}
+      aria-hidden="true"
+    />
+  );
   return (
     <div className="app">
       <aside className="sidebar">
@@ -29,6 +38,7 @@ export function Layout({ children, tabs = true, summary }: { children: ReactNode
           알바페이
         </div>
         <nav aria-label="메뉴">
+          {indicator}
           {TABS.map(({ to, longLabel, icon: Icon, match }) => (
             <Link key={to} to={to} aria-current={isActive(path, match) ? 'page' : undefined}>
               <Icon size={20} />
@@ -41,6 +51,7 @@ export function Layout({ children, tabs = true, summary }: { children: ReactNode
       <main className="main">{children}</main>
       {tabs && (
         <nav aria-label="메뉴" className="tabbar">
+          {indicator}
           {TABS.map(({ to, label, icon: Icon, match }) => (
             <Link key={to} to={to} aria-current={isActive(path, match) ? 'page' : undefined}>
               <Icon />

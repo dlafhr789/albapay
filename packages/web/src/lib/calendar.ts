@@ -9,10 +9,18 @@ export interface CalendarCell {
   shifts: ShiftRecord[];
 }
 
-/** 달력은 시안처럼 월요일부터 시작한다. 정산의 주 시작 요일 설정과는 상관없다. */
-const CALENDAR_WEEK_START = 1;
+/** 달력은 종이 달력처럼 일요일부터 시작한다. 정산의 주 시작 요일 설정과는 상관없다. */
+const CALENDAR_WEEK_START = 0;
 
-/** `yearMonth`를 포함하는 주 전체(5주 또는 6주)의 칸. 근무는 날짜별로 시작 시각 순이다. */
+/** 달력 머리의 요일 순서 */
+export const CALENDAR_DAYS = [0, 1, 2, 3, 4, 5, 6] as const;
+
+/** 일요일은 빨강, 토요일은 파랑으로 칠하기 위한 이름 */
+export function weekendClass(day: number): string {
+  return day === 0 ? 'is-sunday' : day === 6 ? 'is-saturday' : '';
+}
+
+/** `yearMonth`를 포함하는 주 전체(4~6주)의 칸. 근무는 날짜별로 시작 시각 순이다. */
 export function monthCells(yearMonth: string, shifts: readonly ShiftRecord[], today: LocalDate): CalendarCell[] {
   const first = `${yearMonth}-01`;
   const byDate = new Map<LocalDate, ShiftRecord[]>();

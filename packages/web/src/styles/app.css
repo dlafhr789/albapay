@@ -18,6 +18,9 @@
   --outline: #d7dbe1;
   --danger: #c62f2a;
   --danger-soft: #fdeceb;
+  /* 달력의 일요일과 토요일 글자 */
+  --sunday: #e0352b;
+  --saturday: #1f6fe0;
   --radius-card: 20px;
   --radius-section: 16px;
   --tabbar-height: 56px;
@@ -41,7 +44,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: 'IBM Plex Sans KR', system-ui, -apple-system, sans-serif;
+  font-family: 'Pretendard Variable', Pretendard, system-ui, -apple-system, sans-serif;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
@@ -232,9 +235,33 @@ p {
   }
 
   .sidebar nav a[aria-current='page'] {
-    background: var(--primary-soft);
     color: var(--primary);
     font-weight: 600;
+  }
+
+  .sidebar nav {
+    position: relative;
+  }
+
+  .sidebar nav a {
+    position: relative;
+    z-index: 1;
+  }
+
+  .sidebar nav a[aria-current='page']:hover {
+    background: transparent;
+  }
+
+  /* 고른 메뉴 뒤의 상자. 메뉴 한 칸(44px + 간격 2px)씩 아래로 옮긴다. */
+  .sidebar .nav-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--primary-soft);
+    transform: translateY(calc(var(--nav-index) * 46px));
   }
 
   .sidebar-summary {
@@ -789,7 +816,7 @@ select.field-input {
 
 .pay-card-amount {
   font-size: 30px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.03em;
 }
 
@@ -938,6 +965,34 @@ select.field-input {
 .cell--muted .cell-day {
   color: var(--text-4);
   font-weight: 400;
+}
+
+.calendar-weekdays .is-sunday,
+.cell.is-sunday .cell-day {
+  color: var(--sunday);
+}
+
+.calendar-weekdays .is-saturday,
+.cell.is-saturday .cell-day {
+  color: var(--saturday);
+}
+
+/* 다른 달의 날짜는 주말 색도 옅게 */
+.cell--muted.is-sunday .cell-day,
+.cell--muted.is-saturday .cell-day {
+  opacity: 0.4;
+}
+
+.cell .cell-day--today {
+  color: #fff;
+}
+
+.cell.is-sunday .cell-day--today {
+  background: var(--sunday);
+}
+
+.cell.is-saturday .cell-day--today {
+  background: var(--saturday);
 }
 
 .chip {
@@ -1266,7 +1321,7 @@ select.field-input {
 .net-card-amount {
   margin-top: 4px;
   font-size: 34px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.03em;
 }
 
@@ -1646,4 +1701,74 @@ html[data-nav='fade']::view-transition-new(root) {
 .icon-button:active,
 .cell:active {
   transform: scale(0.97);
+}
+
+/* ── 탭 표시 ────────────────────────────────────────── */
+
+/*
+ * 고른 탭 뒤에 둥근 상자를 두고, 탭을 바꾸면 상자가 새 탭으로 미끄러져 간다.
+ * 탭 바와 사이드바는 화면이 바뀌어도 같은 DOM이 남아 있어서 CSS transition으로 움직인다.
+ */
+.tabbar a {
+  position: relative;
+  z-index: 1;
+}
+
+.tabbar a svg {
+  transition: transform 0.3s cubic-bezier(0.3, 0.8, 0.2, 1);
+}
+
+.tabbar a[aria-current='page'] svg {
+  transform: translateY(-1px) scale(1.08);
+}
+
+.tabbar .nav-indicator {
+  position: absolute;
+  top: 9px;
+  left: 8px;
+  width: calc((100% - 16px) / 4);
+  height: calc(var(--tabbar-height) - 12px);
+  display: flex;
+  justify-content: center;
+  transform: translateX(calc(var(--nav-index) * 100%));
+  pointer-events: none;
+}
+
+.tabbar .nav-indicator::before {
+  content: '';
+  width: 64px;
+  height: 100%;
+  border-radius: 14px;
+  background: var(--primary-soft);
+}
+
+.nav-indicator {
+  transition:
+    transform 0.36s cubic-bezier(0.3, 0.8, 0.2, 1),
+    opacity 0.2s;
+}
+
+.nav-indicator--hidden {
+  opacity: 0;
+}
+
+/*
+ * 화면 전환 중에는 탭 바와 사이드바를 이전·새 그림으로 겹치지 않고 실제 화면 하나만 보인다.
+ * 겹치면 이전 위치의 상자가 흐려지는 동안 새 위치로 가는 상자가 함께 보여 두 개처럼 보인다.
+ */
+::view-transition-old(tabbar),
+::view-transition-old(sidebar) {
+  display: none;
+}
+
+::view-transition-new(tabbar),
+::view-transition-new(sidebar) {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-indicator,
+  .tabbar a svg {
+    transition: none;
+  }
 }
