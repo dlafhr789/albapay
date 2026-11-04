@@ -110,7 +110,7 @@ export function Calendar() {
             </span>
             <span>
               <i className="legend-swatch legend-swatch--extra" />
-              대타·추가
+              대타·추가 예정
             </span>
           </div>
         </div>

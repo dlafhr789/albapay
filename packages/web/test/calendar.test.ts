@@ -52,8 +52,12 @@ describe('chipFor', () => {
     expect(chipFor(worked, '2026-11-03')?.label).toBe('6:30');
   });
 
-  it('marks extra shifts and absences, and hides cancelled ones', () => {
+  it('fills extra shifts once worked and marks only upcoming ones as extra', () => {
+    expect(chipFor(shift('2026-11-01', { kind: 'EXTRA' }), '2026-11-03')?.kind).toBe('worked');
     expect(chipFor(shift('2026-11-04', { kind: 'EXTRA' }), '2026-11-03')?.kind).toBe('extra');
+  });
+
+  it('marks absences and hides cancelled shifts', () => {
     expect(chipFor(shift('2026-11-04', { status: 'ABSENT' }), '2026-11-03')).toEqual({ kind: 'absent', label: '결근' });
     expect(chipFor(shift('2026-11-04', { status: 'CANCELLED' }), '2026-11-03')).toBeNull();
   });
