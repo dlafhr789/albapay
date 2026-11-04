@@ -1427,3 +1427,118 @@ select.field-input {
 .row--block {
   display: block;
 }
+
+/* ── 화면 전환 ──────────────────────────────────────── */
+
+/*
+ * lib/router.tsx의 navigate가 View Transitions API로 이전 화면과 새 화면을 찍고, <html data-nav>에 방향을 적는다.
+ * 탭 바와 사이드바는 따로 이름을 붙여서 화면이 넘어가는 동안 제자리에 있다.
+ */
+.tabbar {
+  view-transition-name: tabbar;
+}
+
+.sidebar {
+  view-transition-name: sidebar;
+}
+
+@keyframes nav-in-from-right {
+  from {
+    transform: translateX(28px);
+    opacity: 0;
+  }
+}
+
+@keyframes nav-out-to-left {
+  to {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+}
+
+@keyframes nav-in-from-left {
+  from {
+    transform: translateX(-28px);
+    opacity: 0;
+  }
+}
+
+@keyframes nav-out-to-right {
+  to {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+}
+
+@keyframes nav-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes nav-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 260ms;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation-fill-mode: both;
+}
+
+html[data-nav='forward']::view-transition-old(root) {
+  animation-name: nav-out-to-left;
+}
+
+html[data-nav='forward']::view-transition-new(root) {
+  animation-name: nav-in-from-right;
+}
+
+html[data-nav='back']::view-transition-old(root) {
+  animation-name: nav-out-to-right;
+}
+
+html[data-nav='back']::view-transition-new(root) {
+  animation-name: nav-in-from-left;
+}
+
+html[data-nav='fade']::view-transition-old(root) {
+  animation-name: nav-fade-out;
+  animation-duration: 140ms;
+}
+
+html[data-nav='fade']::view-transition-new(root) {
+  animation-name: nav-fade-in;
+  animation-duration: 200ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+/* 버튼과 칩도 눌렀을 때 바로 반응이 보이게 한다. */
+.segmented button,
+.day-picker button,
+.day-tabs button,
+.cell,
+.button,
+.icon-button {
+  transition:
+    background-color 0.18s,
+    color 0.18s,
+    box-shadow 0.18s,
+    transform 0.12s;
+}
+
+.button:active:not(:disabled),
+.icon-button:active,
+.cell:active {
+  transform: scale(0.97);
+}
