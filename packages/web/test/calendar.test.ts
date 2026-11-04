@@ -25,13 +25,15 @@ function shift(workDate: string, overrides: Partial<ShiftRecord> = {}): ShiftRec
 }
 
 describe('monthCells', () => {
-  it('covers whole weeks from Monday, five or six of them', () => {
+  it('covers whole weeks from Sunday', () => {
     const november = monthCells('2026-11', [], '2026-11-03');
-    expect(november).toHaveLength(42);
-    expect(november[0]).toMatchObject({ date: '2026-10-26', inMonth: false });
-    expect(november.at(-1)).toMatchObject({ date: '2026-12-06', inMonth: false });
+    expect(november).toHaveLength(35);
+    expect(november[0]).toMatchObject({ date: '2026-11-01', inMonth: true });
+    expect(november.at(-1)).toMatchObject({ date: '2026-12-05', inMonth: false });
 
-    expect(monthCells('2027-02', [], '2026-11-03')).toHaveLength(28);
+    const august = monthCells('2026-08', [], '2026-11-03');
+    expect(august).toHaveLength(42);
+    expect(august[0]).toMatchObject({ date: '2026-07-26', inMonth: false });
   });
 
   it('puts shifts on their work date and marks today', () => {

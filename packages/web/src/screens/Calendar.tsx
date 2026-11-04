@@ -1,10 +1,9 @@
-import { toClockTime, todayInSeoul, type LocalDate, type WageEntry } from '@albapay/shared';
+import { dayOfWeek, toClockTime, todayInSeoul, type LocalDate, type WageEntry } from '@albapay/shared';
 import { monthOf, useConfig, useShifts } from '../api/hooks';
-import { chipFor, dayPay, monthCells, type CalendarCell } from '../lib/calendar';
+import { CALENDAR_DAYS, chipFor, dayPay, monthCells, weekendClass, type CalendarCell } from '../lib/calendar';
 import { formatMonthDay, formatNumber, shiftMonth, weekdayName } from '../lib/format';
 import { useIsDesktop } from '../lib/media';
 import { navigate, useLocation, withQuery } from '../lib/router';
-import { WEEK_ORDER } from '../lib/rules';
 import { ErrorAlert } from '../ui/controls';
 import { ChevronLeft, ChevronRight, PlusIcon } from '../ui/icons';
 import { DayPanel } from './DayPanel';
@@ -36,7 +35,7 @@ function Cell({
   return (
     <button
       type="button"
-      className={`cell${cell.inMonth ? '' : ' cell--muted'}${selected ? ' cell--selected' : ''}`}
+      className={`cell ${weekendClass(dayOfWeek(cell.date))}${cell.inMonth ? '' : ' cell--muted'}${selected ? ' cell--selected' : ''}`}
       aria-label={label}
       aria-current={cell.today ? 'date' : undefined}
       onClick={onOpen}
@@ -113,8 +112,10 @@ export function Calendar() {
           </div>
           <section className="card calendar" aria-label={`${Number(month.slice(5, 7))}월 근무 달력`}>
             <div className="calendar-weekdays" aria-hidden="true">
-              {WEEK_ORDER.map((day) => (
-                <span key={day}>{weekdayName(day)}</span>
+              {CALENDAR_DAYS.map((day) => (
+                <span key={day} className={weekendClass(day)}>
+                  {weekdayName(day)}
+                </span>
               ))}
             </div>
             <div className="calendar-grid">

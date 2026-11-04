@@ -18,6 +18,9 @@
   --outline: #d7dbe1;
   --danger: #c62f2a;
   --danger-soft: #fdeceb;
+  /* 달력의 일요일과 토요일 글자 */
+  --sunday: #e0352b;
+  --saturday: #1f6fe0;
   --radius-card: 20px;
   --radius-section: 16px;
   --tabbar-height: 56px;
@@ -938,6 +941,34 @@ select.field-input {
 .cell--muted .cell-day {
   color: var(--text-4);
   font-weight: 400;
+}
+
+.calendar-weekdays .is-sunday,
+.cell.is-sunday .cell-day {
+  color: var(--sunday);
+}
+
+.calendar-weekdays .is-saturday,
+.cell.is-saturday .cell-day {
+  color: var(--saturday);
+}
+
+/* 다른 달의 날짜는 주말 색도 옅게 */
+.cell--muted.is-sunday .cell-day,
+.cell--muted.is-saturday .cell-day {
+  opacity: 0.4;
+}
+
+.cell .cell-day--today {
+  color: #fff;
+}
+
+.cell.is-sunday .cell-day--today {
+  background: var(--sunday);
+}
+
+.cell.is-saturday .cell-day--today {
+  background: var(--saturday);
 }
 
 .chip {
