@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   AppSettings,
+  CalendarStatusResponse,
+  CalendarTokenResponse,
   ConfigResponse,
   DeductionInput,
   DeductionProfile,
@@ -24,6 +26,7 @@ export const keys = {
   payroll: (period: string) => ['payroll', period] as const,
   allPayroll: ['payroll'] as const,
   rules: ['rules'] as const,
+  calendar: ['calendar'] as const,
 };
 
 export function useConfig() {
@@ -197,5 +200,27 @@ export function useDeleteDeduction() {
   return useMutation({
     mutationFn: (effectiveFrom: LocalDate) => request<undefined>('DELETE', `/api/config/deductions/${effectiveFrom}`),
     onSuccess: invalidate,
+  });
+}
+
+export function useCalendarStatus() {
+  return useQuery({ queryKey: keys.calendar, queryFn: () => request<CalendarStatusResponse>('GET', '/api/calendar') });
+}
+
+/** 구독 주소를 새로 만든다. 이전 주소는 바로 끊긴다. 받은 토큰은 화면에만 잠깐 두고 저장하지 않는다. */
+export function useIssueCalendarToken() {
+  const client = useQueryClient();
+  return useMutation({
+    // 본문은 필요 없지만, Lambda Function URL이 POST 본문의 해시를 요구해서 빈 객체를 보낸다.
+    mutationFn: () => request<CalendarTokenResponse>('POST', '/api/calendar/token', { body: {} }),
+    onSuccess: (data) => client.setQueryData<CalendarStatusResponse>(keys.calendar, { enabled: true, createdAt: data.createdAt }),
+  });
+}
+
+export function useDisableCalendar() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => request<undefined>('DELETE', '/api/calendar/token'),
+    onSuccess: () => client.setQueryData<CalendarStatusResponse>(keys.calendar, { enabled: false, createdAt: null }),
   });
 }

@@ -31,7 +31,8 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,png,svg,webmanifest}'],
         navigateFallback: '/index.html',
         // API 응답은 개인 급여 정보이고 서버도 no-store로 보낸다. 서비스 워커가 가로채지 않는다.
-        navigateFallbackDenylist: [/^\/api\//],
+        // 캘린더 피드 주소를 브라우저로 열어도 앱 화면이 아니라 피드가 나오게 한다.
+        navigateFallbackDenylist: [/^\/api\//, /^\/cal\//],
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.origin === self.location.origin && url.pathname.endsWith('.woff2'),
@@ -45,7 +46,7 @@ export default defineConfig({
   server: {
     port: 5173,
     // 개발 중에는 로컬 API 서버(pnpm --filter @albapay/api dev)로 넘긴다. 배포하면 CloudFront가 같은 일을 한다.
-    proxy: { '/api': 'http://127.0.0.1:8787' },
+    proxy: { '/api': 'http://127.0.0.1:8787', '/cal': 'http://127.0.0.1:8787' },
   },
   build: {
     // 배포 CSP가 인라인 스크립트를 막으므로, 작은 자원도 data: URL로 넣지 않고 파일로 낸다.

@@ -1,5 +1,11 @@
 import { Hono } from 'hono';
-import { addDays, todayInSeoul, type ApiErrorBody } from '@albapay/shared';
+import {
+  addDays,
+  todayInSeoul,
+  type ApiErrorBody,
+  type CalendarStatusResponse,
+  type CalendarTokenResponse,
+} from '@albapay/shared';
 import type { AppDeps } from '../deps';
 import { generateToken, hashToken, tokenMatches } from '../http/auth';
 import { buildCalendarFeed } from '../ics';
@@ -20,7 +26,7 @@ export function calendarRoutes({ store, now }: AppDeps): Hono {
 
   app.get('/calendar', async (c) => {
     const info = await store.getTokenInfo('cal');
-    return c.json({ enabled: info !== null, createdAt: info?.createdAt ?? null });
+    return c.json<CalendarStatusResponse>({ enabled: info !== null, createdAt: info?.createdAt ?? null });
   });
 
   // 다시 만들면 이전 주소는 그 순간부터 404가 된다. 주소가 새어 나갔을 때 끊는 방법이기도 하다.
@@ -28,7 +34,7 @@ export function calendarRoutes({ store, now }: AppDeps): Hono {
     const token = generateToken();
     const createdAt = now().toISOString();
     await store.putTokenHash('cal', hashToken(token), createdAt);
-    return c.json({ token, createdAt }, 201);
+    return c.json<CalendarTokenResponse>({ token, createdAt }, 201);
   });
 
   app.delete('/calendar/token', async (c) => {
