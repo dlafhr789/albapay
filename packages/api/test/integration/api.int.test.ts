@@ -44,6 +44,8 @@ const settings = {
   weeklyHolidayMode: 'FOUR_WEEK_AVERAGE',
   eventTitle: '알바',
   showPayInEvent: true,
+  eventTravelMin: 0,
+  eventAlertMin: null,
 };
 
 describe('authentication', () => {

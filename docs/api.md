@@ -67,7 +67,9 @@ TABLE_NAME=<테이블> pnpm --filter @albapay/api issue-token api
     "weekStartsOn": 1,
     "weeklyHolidayMode": "FOUR_WEEK_AVERAGE",
     "eventTitle": "알바",
-    "showPayInEvent": true
+    "showPayInEvent": true,
+    "eventTravelMin": 15,
+    "eventAlertMin": 30
   },
   "wages": [
     { "effectiveFrom": "2026-03-02", "hourlyWage": 10320 },
@@ -79,6 +81,7 @@ TABLE_NAME=<테이블> pnpm --filter @albapay/api issue-token api
 
 - `periodStartDay`, `payDay`는 1~28이다. 29~31일은 2월에 없어서 받지 않는다.
 - `weekStartsOn`은 주휴수당을 세는 주의 첫 요일이다. 0이 일요일, 1이 월요일이다.
+- `eventTravelMin`은 캘린더 일정 앞에 붙일 이동 시간(0~180분, 0이면 없음), `eventAlertMin`은 출발 몇 분 전에 알림을 울릴지(0~180분, `null`이면 없음)다. 저장할 때 빼면 각각 0과 `null`이 된다. 두 필드가 생기기 전에 저장한 설정도 이 기본값으로 읽는다.
 - 공제 본문은 `type`에 따라 다르다. 요율은 백만분율 정수(3% → 30000)이고, 4대보험에서 내지 않는 항목은 `null`이다.
 
 ```json
@@ -347,6 +350,11 @@ POST /api/rules/{id}/end
 - 시각은 `TZID=Asia/Seoul`로 적는다. 실제 시각을 적은 근무는 실제 시각으로, 아니면 예정 시각으로 보인다.
 - 제목은 설정의 `eventTitle`이고, 대타는 뒤에 `(대타)`가 붙는다. `showPayInEvent`가 켜져 있으면 설명에 근무 시간과 예상 급여(기본급만)를 넣는다. 메모도 설명에 들어간다.
 - 빠진 날(`CANCELLED`)과 결근(`ABSENT`)은 넣지 않는다. 구독 캘린더는 피드에서 사라진 일정을 지운다.
+- `eventTravelMin`이 0보다 크면 애플 캘린더의 이동 시간 속성(`X-APPLE-TRAVEL-DURATION`)을 넣는다. 아이폰 캘린더는 구독 일정에서도 일정 앞에 이동 시간을 그린다. 표준 속성이 아니라 다른 캘린더 앱은 무시한다.
+- `eventAlertMin`이 있으면 알림(`VALARM`)을 넣는다.
+  - 알림 시각은 출발 기준이다. TRIGGER는 시작 시각 기준이라 이동 시간과 알림 시간을 더한 만큼 앞당긴다. 이동 시간 15분, 알림 30분이면 18:00 근무의 알림은 17:15에 울린다. 이동 시간 속성을 모르는 캘린더 앱에서도 알림은 같은 시각에 울린다.
+  - 이미 시작한 근무에는 넣지 않는다. 처음 구독할 때 지난 알림이 한꺼번에 뜨지 않게 하기 위해서다.
+  - 아이폰은 구독 캘린더의 알림을 지우는 설정('알림 제거')이 있다. 켜져 있으면 알림이 울리지 않는다.
 - 응답에는 `Cache-Control: no-store`가 붙는다. 다시 받아 가는 간격은 피드의 `REFRESH-INTERVAL`(1시간)이 힌트이고, 실제로는 캘린더 앱 설정이 정한다.
 
 ```
@@ -359,5 +367,12 @@ DTSTART;TZID=Asia/Seoul:20261104T180000
 DTEND;TZID=Asia/Seoul:20261104T230000
 SUMMARY:알바
 DESCRIPTION:5시간 · 예상 급여 50\,000원
+X-APPLE-TRAVEL-DURATION;VALUE=DURATION:PT15M
+BEGIN:VALARM
+UID:r_01JC7Y8Z_20261104-alert@albapay
+ACTION:DISPLAY
+DESCRIPTION:알바
+TRIGGER:-PT45M
+END:VALARM
 END:VEVENT
 ```

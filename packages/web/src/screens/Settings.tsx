@@ -39,7 +39,29 @@ function defaultSettings(today: LocalDate): AppSettings {
     weeklyHolidayMode: 'FOUR_WEEK_AVERAGE',
     eventTitle: '알바',
     showPayInEvent: false,
+    eventTravelMin: 0,
+    eventAlertMin: null,
   };
+}
+
+const TRAVEL_CHOICES = [0, 15, 30, 45, 60];
+const ALERT_CHOICES = [10, 30, 60];
+
+function minutesText(minutes: number): string {
+  if (minutes % 60 === 0) return `${minutes / 60}시간`;
+  return minutes > 60 ? `${Math.floor(minutes / 60)}시간 ${minutes % 60}분` : `${minutes}분`;
+}
+
+/** API로 목록에 없는 값을 저장했어도 화면이 그 값을 보여 주도록 선택지에 더한다. */
+function withValue(choices: readonly number[], value: number | null): number[] {
+  return value === null || choices.includes(value) ? [...choices] : [...choices, value].sort((a, b) => a - b);
+}
+
+/** 알림이 시작 몇 분 전에 울리는지. 이동 시간이 있으면 출발 시각 기준이라 그만큼 더 앞이다. */
+function alertSub(travelMin: number, alertMin: number | null): string | null {
+  if (alertMin === null) return null;
+  const total = travelMin + alertMin;
+  return total === 0 ? '근무 시작 시각에 울려요' : `근무 시작 ${minutesText(total)} 전에 울려요`;
 }
 
 function SettingsForm({ saved, today }: { saved: AppSettings | null; today: LocalDate }) {
@@ -117,7 +139,7 @@ function SettingsForm({ saved, today }: { saved: AppSettings | null; today: Loca
         </section>
       </SectionGroup>
 
-      <SectionGroup title="애플 캘린더" hint="저장하면 캘린더 앱이 다음에 일정을 받아 갈 때 바뀌어요. 예상 급여는 기본급만 계산해요.">
+      <SectionGroup title="애플 캘린더" hint="저장하면 캘린더 앱이 다음에 일정을 받아 갈 때 바뀌어요. 예상 급여는 기본급만 계산해요. 알림이 울리지 않으면 아이폰 설정의 구독 캘린더에서 '알림 제거'를 꺼 주세요.">
         <section className="section">
           <label className="row">
             <span>일정 제목</span>
@@ -127,6 +149,37 @@ function SettingsForm({ saved, today }: { saved: AppSettings | null; today: Loca
             <span>일정에 예상 급여 표시</span>
             <Toggle label="일정에 예상 급여 표시" checked={form.showPayInEvent} onChange={(checked) => set('showPayInEvent', checked)} />
           </div>
+          <label className="row">
+            <span className="row-label">
+              <span>이동 시간</span>
+              <span className="row-sub">일정 앞에 이동 시간이 붙어요</span>
+            </span>
+            <select className="field-input" value={form.eventTravelMin} onChange={(event) => set('eventTravelMin', Number(event.target.value))}>
+              {withValue(TRAVEL_CHOICES, form.eventTravelMin).map((minutes) => (
+                <option key={minutes} value={minutes}>
+                  {minutes === 0 ? '없음' : minutesText(minutes)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="row">
+            <span className="row-label">
+              <span>알림</span>
+              {alertSub(form.eventTravelMin, form.eventAlertMin) && <span className="row-sub">{alertSub(form.eventTravelMin, form.eventAlertMin)}</span>}
+            </span>
+            <select
+              className="field-input"
+              value={form.eventAlertMin ?? ''}
+              onChange={(event) => set('eventAlertMin', event.target.value === '' ? null : Number(event.target.value))}
+            >
+              <option value="">없음</option>
+              {withValue(ALERT_CHOICES, form.eventAlertMin).map((minutes) => (
+                <option key={minutes} value={minutes}>
+                  {minutes === 0 ? '출발할 때' : `출발 ${minutesText(minutes)} 전`}
+                </option>
+              ))}
+            </select>
+          </label>
         </section>
       </SectionGroup>
 

@@ -24,6 +24,8 @@ beforeAll(async () => {
     weeklyHolidayMode: 'FOUR_WEEK_AVERAGE',
     eventTitle: '카페',
     showPayInEvent: true,
+    eventTravelMin: 15,
+    eventAlertMin: 30,
   });
   await store.putWage({ effectiveFrom: '2026-01-01', hourlyWage: 10_000 });
   for (const shift of [
@@ -90,10 +92,16 @@ describe('calendar subscription', () => {
     expect(response.headers.get('cache-control')).toBe('no-store');
 
     const body = await response.text();
-    const uids = [...body.matchAll(/^UID:(.+)@albapay\r$/gm)].map((match) => match[1]);
+    const uids = [...body.matchAll(/^UID:(.+)@albapay\r$/gm)]
+      .map((match) => match[1])
+      // 알림의 UID(`<근무 ID>-alert`)는 빼고 일정의 UID만 본다.
+      .filter((uid) => !uid?.endsWith('-alert'));
     expect(uids).toEqual(['oldest-kept', 'upcoming', 'latest-kept']);
     expect(body).toContain('X-WR-CALNAME:카페\r\n');
     expect(body).toContain('DESCRIPTION:5시간 · 예상 급여 50\\,000원\r\n');
+    // 이동 시간 15분, 출발 30분 전 알림. 지난 근무(7월)에는 알림이 없고 앞으로의 근무 두 개에만 있다.
+    expect(body.match(/X-APPLE-TRAVEL-DURATION;VALUE=DURATION:PT15M\r\n/g)).toHaveLength(3);
+    expect(body.match(/TRIGGER:-PT45M\r\n/g)).toHaveLength(2);
   });
 
   it('answers HEAD without a body', async () => {

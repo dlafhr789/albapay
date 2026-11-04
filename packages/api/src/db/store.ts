@@ -17,6 +17,7 @@ import type {
   ShiftRecord,
   WageEntry,
 } from '@albapay/shared';
+import { settingsSchema } from '@albapay/shared';
 import { isAwsError, StoreError } from './errors';
 import {
   CONFIG_PK,
@@ -187,7 +188,8 @@ export class Store {
     for (const item of await this.queryPartition(CONFIG_PK)) {
       const sk = String(item['SK']);
       if (sk === 'SETTINGS') {
-        settings = stripKeys(item) as AppSettings;
+        // 나중에 생긴 필드가 없는 예전 설정도 기본값을 채워 읽는다. 저장할 때 이미 검사한 값이라 실패하지 않는다.
+        settings = settingsSchema.parse(stripKeys(item));
       } else if (sk.startsWith('WAGE#')) {
         wages.push({
           effectiveFrom: item['effectiveFrom'] as LocalDate,

@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type { PayrollResult } from '@albapay/shared';
+import type { AppSettings, PayrollResult } from '@albapay/shared';
 import { StoreError } from '../../src/db/errors';
 import type { Store } from '../../src/db/store';
 import { createTestStore, shiftRecord } from './helpers';
@@ -25,6 +25,26 @@ async function expectStoreError(promise: Promise<unknown>, code: StoreError['cod
 }
 
 describe('config', () => {
+  it('fills calendar fields that settings saved before they existed do not have', async () => {
+    const { store: legacyStore, drop: dropLegacy } = await createTestStore();
+    try {
+      // 이동 시간과 알림 필드가 생기기 전에 저장한 설정과 같은 모양이다.
+      const legacy = {
+        hireDate: '2026-07-01',
+        periodStartDay: 1,
+        payDay: 10,
+        weekStartsOn: 1,
+        weeklyHolidayMode: 'FOUR_WEEK_AVERAGE',
+        eventTitle: '알바',
+        showPayInEvent: true,
+      };
+      await legacyStore.putSettings(legacy as AppSettings);
+      expect((await legacyStore.loadConfig()).settings).toEqual({ ...legacy, eventTravelMin: 0, eventAlertMin: null });
+    } finally {
+      await dropLegacy();
+    }
+  });
+
   it('returns empty config before anything is saved', async () => {
     expect(await store.loadConfig()).toEqual({ settings: null, wages: [], deductions: [] });
   });
@@ -39,6 +59,8 @@ describe('config', () => {
       weeklyHolidayMode: 'FOUR_WEEK_AVERAGE',
       eventTitle: '알바',
       showPayInEvent: true,
+      eventTravelMin: 0,
+      eventAlertMin: null,
     });
     await store.putWage({ effectiveFrom: '2027-01-01', hourlyWage: 10_700 });
     await store.putWage({ effectiveFrom: '2026-01-01', hourlyWage: 10_320 });

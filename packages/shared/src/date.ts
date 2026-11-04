@@ -78,3 +78,8 @@ export function minutesBetween(start: LocalDateTime, end: LocalDateTime): number
 export function todayInSeoul(now: Date = new Date()): LocalDate {
   return fromDayNumber(Math.floor((now.getTime() + SEOUL_OFFSET_MS) / MS_PER_DAY));
 }
+
+/** 서울 기준 지금 시각(분 단위, `2026-11-04T14:12`). 저장된 근무 시각과 문자열로 바로 비교할 수 있다. */
+export function nowInSeoul(now: Date = new Date()): LocalDateTime {
+  return new Date(now.getTime() + SEOUL_OFFSET_MS).toISOString().slice(0, 16);
+}

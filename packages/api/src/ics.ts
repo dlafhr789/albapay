@@ -1,4 +1,4 @@
-import { paidMinutes, wageOn, type ShiftRecord, type WageEntry } from '@albapay/shared';
+import { paidMinutes, wageOn, type LocalDateTime, type ShiftRecord, type WageEntry } from '@albapay/shared';
 
 // 근무를 iCalendar(RFC 5545)로 바꾼다. 애플 캘린더가 구독 주소로 주기적으로 받아 간다.
 // 캘린더 쪽은 읽기 전용이라, 피드에 없는 일정은 캘린더 앱이 지운다. 그래서 빠진 날과 결근은 넣지 않는다.
@@ -70,6 +70,29 @@ export interface CalendarFeedOptions {
   /** 일정 설명에 그 근무의 예상 급여를 넣을지 */
   showPay: boolean;
   wages: readonly WageEntry[];
+  /** 일정 앞에 붙일 이동 시간(분). 0이면 붙이지 않는다. */
+  travelMin: number;
+  /** 출발 몇 분 전에 알림을 울릴지. null이면 알림을 넣지 않는다. */
+  alertMin: number | null;
+  /** 서울 기준 지금 시각. 이미 시작한 근무에는 알림을 넣지 않는다. */
+  now: LocalDateTime;
+}
+
+/**
+ * 출발 전 알림. TRIGGER는 시작 시각 기준이라, 이동 시간까지 더한 만큼 앞당긴다.
+ * 이동 시간 속성을 모르는 캘린더 앱에서도 알림은 출발 기준으로 울린다.
+ */
+function alarmLines(shift: ShiftRecord, summary: string, options: CalendarFeedOptions): string[] {
+  const minutesBefore = options.travelMin + (options.alertMin ?? 0);
+  return [
+    'BEGIN:VALARM',
+    // 알림에도 고정 UID를 주면, 다시 받아 갈 때 캘린더 앱이 같은 알림으로 본다(RFC 9074).
+    `UID:${shift.id}-alert@albapay`,
+    'ACTION:DISPLAY',
+    `DESCRIPTION:${escapeText(summary)}`,
+    `TRIGGER:${minutesBefore === 0 ? 'PT0S' : `-PT${minutesBefore}M`}`,
+    'END:VALARM',
+  ];
 }
 
 function payLine(shift: ShiftRecord, wages: readonly WageEntry[]): string | null {
@@ -103,6 +126,10 @@ function eventLines(shift: ShiftRecord, options: CalendarFeedOptions): string[] 
     `DTEND;TZID=Asia/Seoul:${localDateTime(end)}`,
     `SUMMARY:${escapeText(summary)}`,
     ...(description ? [`DESCRIPTION:${escapeText(description)}`] : []),
+    // 애플 캘린더의 이동 시간. 표준 속성이 아니라서 다른 캘린더 앱은 무시한다.
+    ...(options.travelMin > 0 ? [`X-APPLE-TRAVEL-DURATION;VALUE=DURATION:PT${options.travelMin}M`] : []),
+    // 이미 시작한 근무에 알림을 넣으면, 처음 구독할 때 지난 알림이 한꺼번에 뜰 수 있다.
+    ...(options.alertMin !== null && start > options.now ? alarmLines(shift, summary, options) : []),
     'END:VEVENT',
   ];
 }
